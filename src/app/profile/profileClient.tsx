@@ -93,7 +93,7 @@ export default function ProfileClient({
                   onClick={() => handleDeleteFromDb(item.id)}
                   className="text-amber-100 hover:text-white font-bold"
                 >
-                  &times
+                  &times;
                 </button>
               </span>
             ))}
