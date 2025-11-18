@@ -135,6 +135,7 @@ export async function POST(req: NextRequest) {
   try {
     // Parse and validate request body
     const requestData = (await req.json()) as GenerateRecipeRequest;
+    console.log("📝 Parsed request data:", requestData);
 
     console.log("📥 Received request:", {
       ingredients: requestData.ingredients.length,
