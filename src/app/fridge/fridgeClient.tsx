@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { deleteIngredient, saveIngredients } from "../main/actions";
+import { deleteIngredient, saveIngredients } from "../home/actions";
 import { useRouter } from "next/navigation";
 import { type Item } from "./page";
 import { Plus, Search } from "lucide-react";

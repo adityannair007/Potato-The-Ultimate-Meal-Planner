@@ -1,70 +1,88 @@
 "use client";
-import { useState } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useTransition } from "react";
+import { ChefHat, Flame, Utensils, RefreshCw } from "lucide-react";
 
+// Assuming foodRecipe is imported or defined locally
 type foodRecipe = {
   name: string;
   recipe: string[];
   calories: number;
 };
 
-type HomeClientProps = {
-  recipes: foodRecipe[];
-};
+export default function HomeClient({ recipes }: { recipes: foodRecipe[] }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
 
-export default function HomeClient({ recipes }: HomeClientProps) {
-  const [visibleIndexes, setVisibleIndexes] = useState<number[]>([]);
-
-  const toggleVisibility = (index: number) => {
-    setVisibleIndexes((prev) =>
-      prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]
-    );
+  const handleGenerate = () => {
+    startTransition(() => {
+      const params = new URLSearchParams(searchParams.toString());
+      // Re-pushing to the same route triggers the Server Component's fetchRecipes
+      router.push(`/home?${params.toString()}`);
+    });
   };
 
   return (
-    <div className="flex flex-col gap-y-4">
-      {recipes.map((food, index) => {
-        const isVisible = visibleIndexes.includes(index);
-        return (
+    <div className="flex flex-col gap-y-8 animate-in fade-in duration-500">
+      {/* Top Action Bar */}
+      <div className="flex justify-between items-center">
+        <p className="text-gray-500 italic">
+          Based on your selection, we found {recipes.length} dishes.
+        </p>
+        <button
+          onClick={handleGenerate}
+          disabled={isPending}
+          className="flex items-center gap-x-2 bg-amber-600 hover:bg-amber-700 text-white px-5 py-2 rounded-xl font-bold shadow-md transition-all active:scale-95 disabled:opacity-50"
+        >
+          <RefreshCw size={18} className={isPending ? "animate-spin" : ""} />
+          {isPending ? "Chef is cooking..." : "Generate New Recipes"}
+        </button>
+      </div>
+
+      {/* Recipes Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {recipes.map((recipe, index) => (
           <div
             key={index}
-            className="bg-white shadow-lg rounded-2xl overflow-hidden transition-all duration-300"
+            className="group bg-white rounded-3xl shadow-lg border border-green-100 p-6 flex flex-col gap-y-5 hover:border-amber-200 transition-colors"
           >
-            <div
-              className="flex items-center justify-between p-6 cursor-pointer hover:bg-gray-50"
-              onClick={() => toggleVisibility(index)}
-            >
-              <h2 className="text-2xl font-bold text-amber-900">{food.name}</h2>
-
-              {isVisible ? (
-                <ChevronDown className="text-amber-900" />
-              ) : (
-                <ChevronRight className="text-amber-900" />
-              )}
+            {/* Header: Title & Calories */}
+            <div className="flex justify-between items-start gap-x-2">
+              <h3 className="text-xl font-extrabold text-gray-800 group-hover:text-amber-700 transition-colors">
+                {recipe.name}
+              </h3>
+              <div className="flex items-center gap-x-1 bg-amber-50 text-amber-700 px-3 py-1 rounded-full text-xs font-bold border border-amber-100">
+                <Flame size={14} />
+                {recipe.calories} kcal
+              </div>
             </div>
 
-            {isVisible && (
-              <div className="p-6 border-t border-gray-200 animate-in fade-in-0 slide-in-from-top-2 duration-300">
-                <h3 className="text-lg font-semibold text-gray-700 mb-3">
-                  Recipe Steps:
-                </h3>
+            <hr className="border-green-50" />
 
-                <ol className="list-decimal list-inside flex flex-col gap-y-2 text-gray-600">
-                  {food.recipe.map((step, stepIndex) => (
-                    <li key={stepIndex}>{step}</li>
-                  ))}
-                </ol>
-
-                <div className="mt-6">
-                  <span className="px-3 py-1 bg-amber-200 text-amber-900 rounded-full text-sm font-medium">
-                    {food.calories} Calories
-                  </span>
-                </div>
+            {/* Content: Instructions */}
+            <div className="flex flex-col gap-y-3">
+              <div className="flex items-center gap-x-2 text-green-700 font-bold text-sm uppercase tracking-wider">
+                <ChefHat size={18} />
+                Instructions
               </div>
-            )}
+              <ol className="space-y-4">
+                {recipe.recipe.map((step, stepIdx) => (
+                  <li
+                    key={stepIdx}
+                    className="flex gap-x-4 text-gray-600 text-sm leading-relaxed"
+                  >
+                    <span className="flex-shrink-0 w-6 h-6 flex items-center justify-center bg-green-100 text-green-800 rounded-lg font-bold text-xs">
+                      {stepIdx + 1}
+                    </span>
+                    {step}
+                  </li>
+                ))}
+              </ol>
+            </div>
           </div>
-        );
-      })}
+        ))}
+      </div>
     </div>
   );
 }

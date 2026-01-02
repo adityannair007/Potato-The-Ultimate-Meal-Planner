@@ -9,9 +9,6 @@ export async function POST(req: NextRequest) {
 
   const formData = await req.formData();
 
-  const email = String(formData.get("email"));
-  const password = String(formData.get("password"));
-
   const supabase = createRouteHandlerClient({
     cookies: () => cookie,
   });

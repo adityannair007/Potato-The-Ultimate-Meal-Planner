@@ -1,21 +1,24 @@
 import HomeClient from "./homeClient";
 import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
+import { foodRecipe } from "../types/recipe";
 
-type foodRecipe = {
-  name: string;
-  recipe: string[];
-  calories: number;
-};
+let fetching = false;
 
+// 2. Fetch function (Helper)
 async function fetchRecipes(
   labels: string[],
   allergen: string[],
   cuisine: string[],
-  mealType: string[], // Changed to array
+  mealType: string[],
   diet: string
 ): Promise<foodRecipe[]> {
+  if (labels.length === 0 || fetching) return [];
+
+  fetching = true;
+
   try {
+    // Note: process.env.NEXT_PUBLIC_URL must be defined or it defaults to localhost
     const apiUrl = process.env.NEXT_PUBLIC_URL || "http://localhost:3000";
 
     const res = await fetch(`${apiUrl}/api/generate`, {
@@ -24,49 +27,56 @@ async function fetchRecipes(
       body: JSON.stringify({
         ingredients: labels,
         allergies: allergen,
-        cuisines: cuisine, // Note: your API needs to support an array
-        mealType: mealType, // Note: your API needs to support an array
-        diet: diet,
+        cuisine,
+        mealType,
+        diet,
       }),
-      cache: "no-store",
+
+      next: { revalidate: 60, tags: ["recipes"] },
     });
 
     if (!res.ok) {
-      console.error("Failed to fetch recipes:", await res.text());
+      if (res.status == 429) {
+        console.log("Gemini is overwhelmed! wait 2 seconds!");
+      }
       return [];
     }
 
     const food = await res.json();
-    console.log(food);
     return food.items || [];
   } catch (error) {
     console.error("Error in fetchRecipes: ", error);
     return [];
+  } finally {
+    setTimeout(() => {
+      fetching = false;
+    }, 2000);
   }
 }
 
+// 3. Helper for searchParams
 const getParamAsArray = (param: string | string[] | undefined): string[] => {
-  if (Array.isArray(param)) {
-    return param;
-  }
-  if (typeof param === "string") {
-    return [param];
-  }
+  if (Array.isArray(param)) return param;
+  if (typeof param === "string") return [param];
   return [];
 };
 
+// 4. THE FIX: Ensure this is "export default async function..."
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams?: { [key: string]: string | string[] | undefined };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }> | any;
 }) {
-  let recipes: foodRecipe[] = [];
+  // In Next.js 15, searchParams is a Promise. We must await it.
+  const resolvedParams = await searchParams;
 
-  const ingredients = getParamAsArray(searchParams?.ingredients);
-  const allergies = getParamAsArray(searchParams?.allergies);
-  const cuisines = getParamAsArray(searchParams?.cuisine);
-  const mealTypes = getParamAsArray(searchParams?.mealType);
-  const diet = (searchParams?.diet as string) || "";
+  const ingredients = getParamAsArray(resolvedParams?.ingredients);
+  const allergies = getParamAsArray(resolvedParams?.allergies);
+  const cuisines = getParamAsArray(resolvedParams?.cuisine);
+  const mealTypes = getParamAsArray(resolvedParams?.mealType);
+  const diet = (resolvedParams?.diet as string) || "";
+
+  let recipes: foodRecipe[] = [];
 
   if (ingredients.length > 0) {
     recipes = await fetchRecipes(
@@ -79,8 +89,9 @@ export default async function HomePage({
   }
 
   return (
-    <div className="flex flex-col w-full min-h-full p-8 bg-green-50 gap-y-6">
+    <div className="flex flex-col w-full min-h-screen p-8 bg-green-50 gap-y-6">
       <h1 className="text-3xl font-bold text-gray-800">Your Recipes</h1>
+
       {recipes.length === 0 ? (
         <div className="flex flex-col items-center justify-center p-10 bg-white rounded-2xl shadow-lg gap-y-4">
           <AlertTriangle size={48} className="text-amber-500" />
@@ -88,8 +99,6 @@ export default async function HomePage({
             No Recipes Found
           </h2>
           <p className="text-gray-500 text-center">
-            We couldn't find any recipes with your selected ingredients.
-            <br />
             Try adding more items from your{" "}
             <Link
               href="/fridge"

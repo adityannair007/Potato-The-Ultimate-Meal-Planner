@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { deleteAllergy, saveAllergies, logout } from "../main/actions";
+import { deleteAllergy, saveAllergies, logout } from "../home/actions";
 import { type Item } from "./page";
 import { LogOut } from "lucide-react";
 

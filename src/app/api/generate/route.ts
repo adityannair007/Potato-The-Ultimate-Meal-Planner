@@ -1,63 +1,64 @@
 import { GoogleGenAI } from "@google/genai";
 import { NextRequest, NextResponse } from "next/server";
 
+// 1. Initialize the client
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
+// Optional: Simple in-memory cache to save your 15 RPM quota
+const cache = new Map<string, any>();
+
 export async function POST(req: NextRequest) {
-  const { ingredients, allergies, cuisines, mealType, diet } =
-    (await req.json()) as {
-      ingredients: string[];
-      allergies: string[];
-      cuisines: string[];
-      mealType: string[];
-      diet: string;
-    };
-
-  const prompt = `Generate 3 distinct food items.
-Each item must be a ${diet} ${mealType} dish from ${cuisines} cuisine.
-The primary ingredients for each dish must be selected from: ${ingredients}.
-Strictly exclude all ingredients related to ${allergies}.
-
-For each food item, provide:
-1. A "name" for the dish.
-2. A "recipe" as an array of sequential steps.
-3. The estimated "calories" for the dish.
-
-Return the response as a JSON array, exactly like this example, with no additional text or formatting outside the JSON:
-
-[
-  {
-    "name": "dish name",
-    "recipe": ["Step 1", "Step 2", "Step 3"],
-    "calories": "calories in the dish"
-  },
-  {
-    "name": "dish name",
-    "recipe": ["Step 1", "Step 2", "Step 3"],
-    "calories": "calories in the dish"
-  },
-  {
-    "name": "dish name",
-    "recipe": ["Step 1", "Step 2", "Step 3"],
-    "calories": "calories in the dish"
-  }
-]
-    `.trim();
-
-  const res = await ai.models.generateContent({
-    model: "gemini-2.0-flash",
-    contents: prompt,
-  });
-
-  const raw = res.text || "";
-
-  const cleaned = raw.replace(/```json|```/g, "").trim();
-
   try {
-    const items = JSON.parse(cleaned);
+    const { ingredients, allergies, cuisine, mealType, diet } =
+      await req.json();
+
+    // Cache logic (Recommended for Free Tier)
+    const cacheKey = JSON.stringify({
+      ingredients,
+      allergies,
+      cuisine,
+      mealType,
+      diet,
+    });
+    if (cache.has(cacheKey)) {
+      return NextResponse.json({ items: cache.get(cacheKey) });
+    }
+
+    // 2. Correct function call for @google/genai SDK
+    // Notice: .models.generateContent takes an object with 'model' and 'contents'
+    const res = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: `Generate 3 recipes as a JSON array. 
+        Diet: ${diet || "Any"}
+        Meal Types: ${Array.isArray(mealType) ? mealType.join(", ") : mealType}
+        Cuisines: ${Array.isArray(cuisine) ? cuisine.join(", ") : cuisine}
+        Ingredients: ${ingredients.join(", ")}
+        Exclude: ${allergies?.join(", ") || "None"}
+        Format: [{"name": "string", "recipe": ["string"], "calories": number}]`,
+      config: {
+        responseMimeType: "application/json", // Native JSON mode
+      },
+    });
+
+    // 3. The response text is accessed directly via .text
+    const items = JSON.parse(res.text || "[]");
+
+    cache.set(cacheKey, items);
+
     return NextResponse.json({ items });
-  } catch (e) {
-    console.error("Failed to parse AI response:", cleaned);
-    return NextResponse.json({ error: "Invalid AI response" }, { status: 500 });
+  } catch (error: any) {
+    console.error("SDK Error:", error);
+
+    if (error.status === 429 || error.message?.includes("429")) {
+      return NextResponse.json(
+        { error: "Rate limit reached" },
+        { status: 429 }
+      );
+    }
+
+    return NextResponse.json(
+      { error: "Failed to generate recipes", details: error.message },
+      { status: 500 }
+    );
   }
 }
