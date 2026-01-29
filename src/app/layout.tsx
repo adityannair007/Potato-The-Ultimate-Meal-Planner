@@ -68,7 +68,7 @@ export default function RootLayout({
         For a true minimalist look, you might change this to 'bg-slate-50'
         to have a white/light gray content area.
       */}
-      <body className="h-full bg-yellow-600">
+      <body className="h-full bg-yellow-50">
         <div className="flex w-full h-full">
           <Sidebar />
           <div className="w-5/6 h-full overflow-y-auto">{children}</div>
