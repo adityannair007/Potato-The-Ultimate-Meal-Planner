@@ -1,0 +1,25 @@
+services:
+  api:
+    build: .
+    ports:
+      - 3000:3000
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - NODE_ENV=development
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    volumes:
+      - .:/app # This MAPS your local folder to the container folder
+      - /app/node_modules # This PROTECTS the container's node_modules
+      - /app/.next
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  redis_data:
