@@ -9,8 +9,6 @@ import {
   DrawerContent,
   DrawerFooter,
   DrawerHeader, // Added
-  DrawerTitle, // Added
-  DrawerDescription, // Added
   DrawerTrigger,
 } from "@/components/ui/drawer";
 import {
@@ -19,8 +17,32 @@ import {
   InputOTPSeparator,
   InputOTPSlot,
 } from "@/components/ui/input-otp";
+import { useRef, useState } from "react";
 
 export default function LoginPage() {
+  const [otpValue, setOtpValue] = useState("");
+  const [toggleVerify, setToggleVerify] = useState<boolean>(false);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  const handleSignUp = async (e: React.MouseEvent) => {
+    console.log("handleSignUp called!");
+    if (formRef.current) {
+      const formData = new FormData(formRef.current);
+      await sendOTP(formData);
+    }
+    setToggleVerify(true);
+  };
+
+  const handleVerifyOtp = async () => {
+    console.log("Verify Otp function in!!");
+
+    if (formRef.current) {
+      const formData = new FormData(formRef.current);
+      formData.set("otp", otpValue);
+      await verifyEmailOtp(formData);
+    }
+    setToggleVerify(false);
+  };
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-100 dark:bg-gray-900 font-sans">
       <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-2xl shadow-lg dark:bg-gray-800">
@@ -53,7 +75,7 @@ export default function LoginPage() {
         </div>
 
         {/* This <form> wraps everything, including the drawer buttons */}
-        <form className="space-y-6">
+        <form ref={formRef} className="space-y-6">
           <div>
             <label
               htmlFor="email"
@@ -97,60 +119,52 @@ export default function LoginPage() {
             </button>
 
             {/* --- DRAWER INTEGRATION --- */}
-            <Drawer>
-              <DrawerTrigger asChild>
-                {/* This button triggers the drawer AND submits the form to sendOTP */}
-                <button
-                  formAction={sendOTP}
-                  className="w-full px-4 py-3 font-semibold text-gray-800 bg-gray-200 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50 transition-colors duration-300 dark:bg-gray-600 dark:text-white dark:hover:bg-gray-500"
-                >
-                  Sign Up
-                </button>
-              </DrawerTrigger>
-              <DrawerContent>
-                <div className="mx-auto w-full max-w-sm">
-                  <DrawerHeader>
-                    <DrawerTitle>Check your email</DrawerTitle>
-                    <DrawerDescription>
-                      Enter the 6-digit verification code we sent you.
-                    </DrawerDescription>
-                  </DrawerHeader>
-                  <div className="p-4 py-6">
-                    <div className="flex justify-center">
-                      <InputOTP
-                        maxLength={6}
-                        name="otp" // This name is crucial for the form submission
-                      >
-                        <InputOTPGroup>
-                          <InputOTPSlot index={0} />
-                          <InputOTPSlot index={1} />
-                          <InputOTPSlot index={2} />
-                        </InputOTPGroup>
-                        <InputOTPSeparator />
-                        <InputOTPGroup>
-                          <InputOTPSlot index={3} />
-                          <InputOTPSlot index={4} />
-                          <InputOTPSlot index={5} />
-                        </InputOTPGroup>
-                      </InputOTP>
-                    </div>
-                  </div>
-                  <DrawerFooter>
-                    {/* This button submits the form to verifyEmailOtp */}
-                    <button
-                      formAction={verifyEmailOtp}
-                      className="w-full px-4 py-3 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors duration-300"
+
+            {/* This button triggers the drawer AND submits the form to sendOTP */}
+            <Button
+              onClick={handleSignUp}
+              className="w-full px-4 py-3 font-semibold text-gray-800 bg-gray-200 rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50 transition-colors duration-300 dark:bg-gray-600 dark:text-white dark:hover:bg-gray-500"
+            >
+              Sign Up
+            </Button>
+            {toggleVerify && (
+              <div className="mx-auto w-full max-w-sm">
+                <p>Check your email</p>
+                <p>Enter the 6-digit verification code we sent you.</p>
+
+                <div className="p-4 py-6">
+                  <div className="flex justify-center">
+                    <InputOTP
+                      maxLength={6}
+                      value={otpValue}
+                      onChange={(value) => setOtpValue(value)}
                     >
-                      Verify Account
-                    </button>
-                    <DrawerClose asChild>
-                      <Button variant="outline">Cancel</Button>
-                    </DrawerClose>
-                  </DrawerFooter>
+                      <InputOTPGroup>
+                        <InputOTPSlot index={0} />
+                        <InputOTPSlot index={1} />
+                        <InputOTPSlot index={2} />
+                      </InputOTPGroup>
+                      <InputOTPSeparator />
+                      <InputOTPGroup>
+                        <InputOTPSlot index={3} />
+                        <InputOTPSlot index={4} />
+                        <InputOTPSlot index={5} />
+                      </InputOTPGroup>
+                    </InputOTP>
+                  </div>
                 </div>
-              </DrawerContent>
-            </Drawer>
-            {/* --- END DRAWER INTEGRATION --- */}
+
+                {/* This button submits the form to verifyEmailOtp */}
+                <Button
+                  onClick={handleVerifyOtp}
+                  className="w-full px-4 py-3 font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-colors duration-300"
+                >
+                  Verify Account
+                </Button>
+
+                <Button variant="outline">Cancel</Button>
+              </div>
+            )}
           </div>
         </form>
       </div>

@@ -1,8 +1,9 @@
 "use client";
-import { useState } from "react";
+import { ReactEventHandler, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { deleteAllergy, saveAllergies, logout } from "../home/actions";
+import { GiPotato } from "react-icons/gi";
+import { deleteAllergy, logout } from "../home/actions";
 import { type Item } from "./page";
 import { LogOut } from "lucide-react";
 import {
@@ -13,24 +14,56 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { user } from "../types/user";
+
+import * as motion from "motion/react-client";
+import { saveAllergies, uploadAvatar } from "./actions";
+import Image from "next/image";
 
 type ProfileClientProps = {
-  initialAllergies: Item[];
+  initialData: user;
 };
 
-export default function ProfileClient({
-  initialAllergies,
-}: ProfileClientProps) {
-  const [name, setName] = useState("");
-  const [weight, setWeight] = useState<number>();
-  const [height, setHeight] = useState<number>();
-  const [gender, setGender] = useState("");
-  const [age, setAge] = useState<number>();
+export default function ProfileClient({ initialData }: ProfileClientProps) {
+  const [profile, setProfile] = useState({
+    ...initialData,
+    tempFile: null as File | null,
+    previewUrl: initialData.avatar_url,
+  });
+  const [unit, setUnit] = useState<"kg" | "lbs">("kg");
   const [haveGoal, setHaveGoal] = useState<boolean>(false);
   const [allergy, setAllergy] = useState<string>("");
   const [addedAllergy, setAddedAllergies] = useState<Item[]>([]);
-  const [savedAllergies, setSavedAllergies] =
-    useState<Item[]>(initialAllergies);
+  const [savedAllergies, setSavedAllergies] = useState(
+    initialData.allergies.map((d: any) => ({
+      id: d.allergy_id,
+      name: d.allergy_name,
+    })) || [],
+  );
+
+  const kgToLbs = (newUnit: "kg" | "lbs") => {
+    if (newUnit === unit) return;
+
+    if (profile.weight == null || profile.weight == 0) return;
+
+    let calculatedWeight: number;
+    if (unit == "kg") {
+      calculatedWeight = Math.round(profile.weight * 2.20462);
+    } else {
+      calculatedWeight = Math.round(profile.weight / 2.20462);
+    }
+    setUnit(newUnit);
+    setProfile((prev) => ({ ...prev, weight: calculatedWeight }));
+  };
+
+  const handleSaveProfile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type } = e.target;
+
+    setProfile((prev) => ({
+      ...prev,
+      [name]: type === "number" ? (value === "" ? null : Number(value)) : value,
+    }));
+  };
 
   const handleAddedAllergies = () => {
     const trimmed = allergy.trim();
@@ -40,16 +73,48 @@ export default function ProfileClient({
   };
 
   const handleSaveToDb = async () => {
+    //preview image to database table
+    if (profile.tempFile) {
+      const formData = new FormData();
+      formData.append("avatar", profile.tempFile);
+
+      const res = await uploadAvatar(formData);
+      if (res.success) {
+        alert("Upload completed!!!!");
+      }
+    }
+    //allergy
     const allergyNames = addedAllergy.map((item) => ({ name: item.name }));
     if (allergyNames.length === 0) return;
     await saveAllergies(allergyNames);
+    setProfile((prev) => ({
+      ...prev,
+      allergies,
+    }));
     setSavedAllergies((prev) => [...prev, ...addedAllergy]);
     setAddedAllergies([]);
+
+    //rest of em
   };
 
   const handleDeleteFromDb = async (id: number) => {
     await deleteAllergy(id);
     setSavedAllergies((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const handleUploadAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log("Handle upload avatar function called!!");
+    const file = e.target.files?.[0];
+
+    if (!file) return;
+
+    const tempUrl = URL.createObjectURL(file);
+    setProfile((prev) => ({
+      ...prev,
+      tempFile: file,
+      previewUrl: tempUrl,
+    }));
+    console.log("Image added to preview!!");
   };
 
   return (
@@ -58,12 +123,38 @@ export default function ProfileClient({
         <div className="flex flex-col md:flex-row">
           <div className="w-full md:w-2/5 p-10 bg-amber-900 text-amber-50 flex flex-col items-center">
             <div className="relative group">
-              <div className="w-32 h-32 rounded-3xl bg-amber-700 flex items-center justify-center border-4 border-amber-600 rotate-3 group-hover:rotate-0 transition-transform duration-300">
-                <span className="text-5xl font-black text-amber-100 -rotate-3 group-hover:rotate-0 transition-transform">
-                  U
-                </span>
-              </div>
-              <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-green-500 border-4 border-amber-900 rounded-full"></div>
+              <motion.div
+                whileHover={{ rotate: 7, scale: 1.1 }}
+                whileTap={{
+                  scale: 0.9,
+                }}
+                className="w-32 h-32 rounded-3xl bg-amber-700 flex items-center justify-center border-4 border-amber-600 shadow-xl"
+              >
+                {profile.avatar_url ? (
+                  <Image
+                    src={profile.previewUrl || profile.avatar_url}
+                    fill
+                    className="object-cover p-2 border-2 border-amber-600 bg-amber-600 rounded-3xl"
+                    alt="Profile Picture"
+                  />
+                ) : (
+                  <div className="flex items-center justify-center w-full h-full text-6xl text-amber-200">
+                    <GiPotato />
+                  </div>
+                )}
+                <input
+                  type="file"
+                  id="avatar-input"
+                  hidden
+                  accept="image/*"
+                  onChange={handleUploadAvatar}
+                />
+
+                <label
+                  htmlFor="avatar-input"
+                  className="absolute inset-0 cursor-pointer flex items-center justify-center rounded-3xl"
+                ></label>
+              </motion.div>
             </div>
 
             <div className="mt-8 w-full space-y-6">
@@ -74,6 +165,9 @@ export default function ProfileClient({
                 <Input
                   className="bg-amber-800/50 border-none text-white placeholder:text-amber-600 h-12 text-lg focus-visible:ring-amber-400"
                   placeholder="Enter Username"
+                  name="username"
+                  value={profile.username}
+                  onChange={handleSaveProfile}
                 />
               </div>
 
@@ -85,10 +179,13 @@ export default function ProfileClient({
                   <div className="flex bg-amber-800/50 rounded-md overflow-hidden">
                     <Input
                       type="number"
+                      name="weight"
                       className="bg-transparent border-none text-amber focus-visible:ring-0"
                       placeholder="68"
+                      value={profile.weight || ""}
+                      onChange={handleSaveProfile}
                     />
-                    <Select defaultValue="kg">
+                    <Select defaultValue="kg" onValueChange={kgToLbs}>
                       <SelectTrigger className="w-20 bg-amber-700 border-none text-xs">
                         <SelectValue />
                       </SelectTrigger>
@@ -106,8 +203,11 @@ export default function ProfileClient({
                   <div className="flex items-center bg-amber-800/50 rounded-md pr-3">
                     <Input
                       type="number"
+                      name="height"
+                      value={profile.height || ""}
                       className="bg-transparent border-none text-white focus-visible:ring-0"
                       placeholder="175"
+                      onChange={handleSaveProfile}
                     />
                     <span className="text-xs font-bold text-amber-500">CM</span>
                   </div>
@@ -119,7 +219,7 @@ export default function ProfileClient({
                   <label className="text-xs font-bold uppercase tracking-widest text-amber-400">
                     Gender
                   </label>
-                  <Select>
+                  <Select defaultValue={profile.gender || undefined}>
                     <SelectTrigger className="w-39 bg-amber-700 border-none text-xs">
                       <SelectValue />
                     </SelectTrigger>
@@ -135,17 +235,17 @@ export default function ProfileClient({
                   </label>
                   <Input
                     type="number"
+                    name="age"
+                    value={profile.age || ""}
+                    onChange={handleSaveProfile}
                     className="bg-amber-800/50 border-none text-white"
-                    placeholder="23"
                   />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Main Content: Goals & Lifestyle */}
           <div className="flex-1 p-10 flex flex-col justify-between space-y-10">
-            {/* Goal Section */}
             <section className="space-y-4">
               <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                 <span className="w-2 h-8 bg-amber-500 rounded-full"></span>
@@ -182,7 +282,6 @@ export default function ProfileClient({
               </div>
             </section>
 
-            {/* Allergy Management */}
             <section className="space-y-4">
               <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                 <span className="w-2 h-8 bg-orange-500 rounded-full"></span>
@@ -212,7 +311,6 @@ export default function ProfileClient({
                           No restrictions listed. Eat safe!
                         </p>
                       )}
-
                     {savedAllergies.map((item) => (
                       <div
                         key={item.id}
@@ -251,7 +349,6 @@ export default function ProfileClient({
               </div>
             </section>
 
-            {/* Action Buttons */}
             <div className="flex items-center justify-between pt-6 border-t border-gray-100">
               <Button
                 variant="ghost"
@@ -261,12 +358,16 @@ export default function ProfileClient({
                 <LogOut size={18} className="mr-2" />
                 Sign Out
               </Button>
-              <Button
+              <motion.button
+                whileHover={{ scale: 1.1, transition: { duration: 0.1 } }}
+                whileTap={{
+                  scale: 0.8,
+                }}
                 onClick={handleSaveToDb}
                 className="px-10 h-14 bg-amber-900 text-white text-lg font-bold rounded-2xl shadow-lg shadow-amber-700 hover:bg-amber-800 hover:-translate-y-1 transition-all"
               >
                 Update Profile
-              </Button>
+              </motion.button>
             </div>
           </div>
         </div>

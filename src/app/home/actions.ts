@@ -35,21 +35,6 @@ export async function deleteIngredient(index: number) {
   revalidatePath("/home");
 }
 
-export async function saveAllergies(allergy: { name: string }[]) {
-  if (!allergy || allergy.length === 0) {
-    console.log("No changes to the allergy box!");
-    return;
-  }
-  const supabase = await createClient();
-  const allergyObj = allergy.map((itemname) => ({ name: itemname.name }));
-  console.log("Allergy object: ", allergyObj);
-  const { error } = await supabase.from("allergy").insert(allergyObj);
-  if (error) {
-    console.log("Error saving allergies: ", error);
-  }
-  revalidatePath("/home");
-}
-
 export async function deleteAllergy(index: number) {
   const supabase = await createClient();
   const { data, error } = await supabase

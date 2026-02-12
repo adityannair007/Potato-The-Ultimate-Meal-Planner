@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 export async function sendOTP(formData: FormData) {
+  console.log("Entered sendOtp function!!!");
   const supabase = await createClient();
   const email = formData.get("email") as string;
 
@@ -33,9 +34,11 @@ export async function sendOTP(formData: FormData) {
 
 export async function verifyEmailOtp(formData: FormData) {
   const supabase = await createClient();
+  console.log("otp verify server called!!");
 
   const email = formData.get("email") as string;
   const otp = formData.get("otp") as string;
+  console.log("Email: ", email, "Otp: ", otp);
 
   if (!email || !otp) {
     return redirect("/login?error=Email and OTP are required.");
