@@ -25,7 +25,7 @@ export default async function ProfilePage() {
     age: 0,
     gender: "",
     weight_goal: 0,
-    allergies: [], // This is where the empty array belongs
+    allergies: [],
   };
 
   return <ProfileClient initialData={data || fallbackUser} />;

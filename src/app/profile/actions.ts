@@ -1,21 +1,15 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { createClient } from "../lib/supabase/server";
-import { user } from "../types/user";
+import { redirect } from "next/navigation";
 
-export async function saveAllergies(allergy: { name: string }[]) {
-  if (!allergy || allergy.length === 0) {
-    console.log("No changes to the allergy box!");
-    return;
-  }
+export async function logout() {
   const supabase = await createClient();
-  const allergyObj = allergy.map((itemname) => ({ name: itemname.name }));
-  console.log("Allergy object: ", allergyObj);
-  const { error } = await supabase.from("allergy").insert(allergyObj);
-  if (error) {
-    console.log("Error saving allergies: ", error);
-  }
-  revalidatePath("/home");
+  const { error } = await supabase.auth.signOut();
+  if (error) console.log("Error: ", error);
+
+  revalidatePath("/", "layout");
+  redirect("/profile");
 }
 
 export async function uploadAvatar(formData: FormData) {
@@ -40,25 +34,62 @@ export async function uploadAvatar(formData: FormData) {
     data: { publicUrl },
   } = await supabase.storage.from("avatars").getPublicUrl(filePath);
 
-  console.log("Public url:", publicUrl);
   const cacheBuster = `?t=${Date.now()}`;
   const finalUrl = `${publicUrl}${cacheBuster}`;
 
-  const { error: dbError } = await supabase
-    .from("users")
-    .update({ avatar_url: finalUrl })
-    .eq("user_id", user_id);
-
-  if (dbError) return { error: dbError.message };
-
   revalidatePath("/profile");
-  return { success: true, url: publicUrl };
+  return { success: true, url: finalUrl };
 }
 
-export async function updateUserDetails(userDetails: { user: user }) {
+export async function deleteAllergy(toDelete: string[]) {
+  const user_id = "d7b8a1c2-e3f4-4a5b-9c6d-7e8f9a0b1c2d";
   const supabase = await createClient();
-  const { error } = await supabase.from("users").insert(userDetails);
 
-  if (error) console.error(error.message);
+  if (toDelete.length > 0) {
+    const { error: deletionError } = await supabase
+      .from("user_allergy")
+      .delete()
+      .in("allergy_id", toDelete) // order matters??
+      .eq("user_id", user_id);
+    console.error(deletionError);
+  }
   revalidatePath("/profile");
+  return { success: true };
+}
+
+export async function updateUserDetails(userDetails: any) {
+  const user_id = "d7b8a1c2-e3f4-4a5b-9c6d-7e8f9a0b1c2d";
+  const supabase = await createClient();
+
+  const { newAllergies, ...userData } = userDetails;
+
+  const { error: userError } = await supabase
+    .from("users")
+    .update(userData)
+    .eq("user_id", user_id);
+
+  if (userError) throw new Error(userError.message);
+
+  if (newAllergies.length > 0) {
+    const { data: allergyIds, error } = await supabase
+      .from("allergy")
+      .upsert(
+        newAllergies.map((value: string) => ({ name: value.toLowerCase() })),
+        { onConflict: "name" },
+      )
+      .select("allergy_id");
+
+    if (allergyIds) {
+      const finalAllergies = allergyIds.map((rows) => ({
+        user_id,
+        allergy_id: rows.allergy_id,
+      }));
+      await supabase
+        .from("user_allergy")
+        .upsert(finalAllergies, { onConflict: "user_id, allergy_id" });
+    }
+  }
+
+  revalidatePath("/profile");
+  return { success: true };
 }
