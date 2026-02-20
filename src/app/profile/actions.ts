@@ -21,7 +21,7 @@ export async function uploadAvatar(formData: FormData) {
   const filePath = `${user_id}/avatar.png`;
   console.log("Filename: ", file, "\nFilePath: ", filePath);
 
-  const { data, error: uploadError } = await supabase.storage
+  const { error: uploadError } = await supabase.storage
     .from("avatars")
     .upload(filePath, file, { upsert: true, contentType: file.type });
 
@@ -61,7 +61,7 @@ export async function updateUserDetails(userDetails: any) {
   const user_id = "d7b8a1c2-e3f4-4a5b-9c6d-7e8f9a0b1c2d";
   const supabase = await createClient();
 
-  const { newAllergies, ...userData } = userDetails;
+  const { newAllergies, allergies, toDelete, ...userData } = userDetails;
 
   const { error: userError } = await supabase
     .from("users")
@@ -69,6 +69,14 @@ export async function updateUserDetails(userDetails: any) {
     .eq("user_id", user_id);
 
   if (userError) throw new Error(userError.message);
+
+  if (toDelete && toDelete.length > 0) {
+    await supabase
+      .from("user_allergy")
+      .delete()
+      .in("allergy_id", toDelete)
+      .eq("user_id", user_id);
+  }
 
   if (newAllergies.length > 0) {
     const { data: allergyIds, error } = await supabase
@@ -84,9 +92,12 @@ export async function updateUserDetails(userDetails: any) {
         user_id,
         allergy_id: rows.allergy_id,
       }));
-      await supabase
+      const { error: userAllergyError } = await supabase
         .from("user_allergy")
         .upsert(finalAllergies, { onConflict: "user_id, allergy_id" });
+
+      if (userAllergyError)
+        console.log("Error in user_allergy table insertion:", error);
     }
   }
 

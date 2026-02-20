@@ -24,6 +24,7 @@ import {
   uploadAvatar,
 } from "./actions";
 import Image from "next/image";
+import { useUser } from "../context/UserContext";
 
 type ProfileClientProps = {
   initialData: user;
@@ -48,6 +49,7 @@ export default function ProfileClient({ initialData }: ProfileClientProps) {
     })) || [],
   );
   const [removeAllergies, setRemoveAllergies] = useState<string[]>([]);
+  const { user, setUser } = useUser();
 
   const kgToLbs = (newUnit: "kg" | "lbs") => {
     if (newUnit === unit) return;
@@ -82,7 +84,6 @@ export default function ProfileClient({ initialData }: ProfileClientProps) {
     if (!trimmed) return;
     setAddedAllergies((prev) => [...prev, { id: Date.now(), name: trimmed }]);
     setAllergy("");
-
     console.log("Saved allergies:", savedAllergies);
     console.log("Initial data:", initialData);
   };
@@ -104,27 +105,39 @@ export default function ProfileClient({ initialData }: ProfileClientProps) {
         console.log("New changed avatar:", current_avatar);
       }
 
-      const payload = {
-        username: profile.username,
-        weight: profile.weight,
-        height: profile.height,
-        age: profile.age,
-        gender: profile.gender,
-        avatar_url: current_avatar,
-        weight_goal: profile.weight_goal,
-        newAllergies: addedAllergy.map((a) => a.name.toLowerCase()), //creates an array of allergy names from addedallergies
-      };
-      //allergy
-      console.log("new allergies: ", payload.newAllergies);
+      const isLbs = unit === "lbs";
 
-      await deleteAllergy(removeAllergies);
+      const payload = {
+        ...profile,
+        avatar_url: current_avatar,
+        weight: isLbs
+          ? Math.round(profile.weight ?? 0 / 2.204)
+          : profile.weight,
+        newAllergies: addedAllergy.map((a) => a.name.toLowerCase()),
+        toDelete: removeAllergies,
+      };
+      console.log("new allergies: ", payload.newAllergies);
 
       const res = await updateUserDetails(payload);
       if (res.success) {
+        const updatedAllergies = [
+          ...savedAllergies.map((a) => ({
+            allergy: [{ allergy_id: a.id, name: a.name }],
+          })),
+          ...addedAllergy.map((a) => ({
+            allergy: [{ allergy_id: a.id, name: a.name }],
+          })),
+        ];
+        setUser({
+          ...profile,
+          avatar_url: current_avatar,
+          allergies: updatedAllergies,
+        });
         setSavedAllergies((prev) => [...prev, ...addedAllergy]);
         setAddedAllergies([]);
+        setRemoveAllergies([]);
         setTempPicture({ tempFile: null, previewUrl: null });
-        console.log("Profile update succesfull!!");
+        console.log("Profile update successful!!");
       }
       console.log("end of handle fucntion!!!");
     } catch (error) {
@@ -208,7 +221,7 @@ export default function ProfileClient({ initialData }: ProfileClientProps) {
                   className="bg-amber-800/50 border-none text-white placeholder:text-amber-600 h-12 text-lg focus-visible:ring-amber-600"
                   placeholder="Enter Username"
                   name="username"
-                  value={profile.username || ""}
+                  value={profile?.username || ""}
                   onChange={handleSaveProfile}
                 />
               </div>
@@ -224,7 +237,7 @@ export default function ProfileClient({ initialData }: ProfileClientProps) {
                       name="weight"
                       className="bg-transparent border-none text-amber focus-visible:ring-1 focus-visible:ring-amber-600"
                       placeholder="68"
-                      value={profile.weight || ""}
+                      value={profile?.weight || ""}
                       onChange={handleSaveProfile}
                     />
                     <Select defaultValue="kg" onValueChange={kgToLbs}>
@@ -246,7 +259,7 @@ export default function ProfileClient({ initialData }: ProfileClientProps) {
                     <Input
                       type="number"
                       name="height"
-                      value={profile.height || ""}
+                      value={profile?.height || ""}
                       className="bg-transparent border-none text-white focus-visible:ring-1 focus-visible:ring-amber-600"
                       placeholder="175"
                       onChange={handleSaveProfile}
@@ -264,7 +277,7 @@ export default function ProfileClient({ initialData }: ProfileClientProps) {
                     Gender
                   </label>
                   <Select
-                    defaultValue={profile.gender || undefined}
+                    defaultValue={profile?.gender || undefined}
                     onValueChange={(value) =>
                       setProfile((prev) => ({ ...prev, gender: value }))
                     }
@@ -285,7 +298,7 @@ export default function ProfileClient({ initialData }: ProfileClientProps) {
                   <Input
                     type="number"
                     name="age"
-                    value={profile.age || ""}
+                    value={profile?.age || ""}
                     onChange={handleSaveProfile}
                     className="bg-amber-800/50 border-none text-white focus-visible:ring-1 focus-visible:ring-amber-600"
                   />
@@ -326,7 +339,7 @@ export default function ProfileClient({ initialData }: ProfileClientProps) {
                       className="w-24 h-12 border-2 text-center text-xl font-bold"
                       placeholder="70"
                       onChange={handleSaveProfile}
-                      value={profile.weight_goal || ""}
+                      value={profile?.weight_goal || ""}
                     />
                     <span className="font-bold text-gray-400">KG</span>
                   </div>
