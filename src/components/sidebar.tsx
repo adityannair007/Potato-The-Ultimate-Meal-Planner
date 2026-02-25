@@ -6,8 +6,12 @@ import { usePathname } from "next/navigation";
 import "../app/globals.css";
 import Image from "next/image";
 import * as motion from "motion/react-client";
+import { GiPotato } from "react-icons/gi";
+import { useUser } from "@/app/context/UserContext";
 
-export default function Sidebar({ avatar_url }: { avatar_url: string | null }) {
+export default function Sidebar() {
+  const { user } = useUser();
+  if (!user) console.log("No user found!");
   const pathname = usePathname();
 
   const getLinkClasses = (path: string) => {
@@ -24,14 +28,19 @@ export default function Sidebar({ avatar_url }: { avatar_url: string | null }) {
       <Link href="/profile">
         <motion.div
           whileHover={{ scale: 1.1 }}
-          className="relative w-25 h-25 rounded-full hover:border-3 hover:border-amber-600"
+          className="relative w-24 h-24 rounded-full flex items-center justify-center bg-amber-700 overflow-hidden border-2 border-transparent hover:border-amber-500"
         >
-          <Image
-            fill
-            src={avatar_url || ""}
-            alt="Profile picture"
-            className="object-cover rounded-full"
-          />
+          {user?.avatar_url != null ? (
+            <Image
+              fill
+              src={user?.avatar_url}
+              alt="Profile picture"
+              sizes="96px"
+              className="object-cover rounded-full"
+            />
+          ) : (
+            <GiPotato className="text-amber-300 rounded-xl p-4" size={100} />
+          )}
         </motion.div>
       </Link>
 

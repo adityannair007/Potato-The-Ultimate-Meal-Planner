@@ -14,17 +14,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { user } from "../types/user";
+import { user } from "../../types/user";
 
 import * as motion from "motion/react-client";
-import {
-  deleteAllergy,
-  logout,
-  updateUserDetails,
-  uploadAvatar,
-} from "./actions";
+import { logout, updateUserDetails, uploadAvatar } from "./actions";
 import Image from "next/image";
-import { useUser } from "../context/UserContext";
+import { useUser } from "../../context/UserContext";
+import { createClient } from "@/app/lib/supabase/server";
 
 type ProfileClientProps = {
   initialData: user;
@@ -50,6 +46,7 @@ export default function ProfileClient({ initialData }: ProfileClientProps) {
   );
   const [removeAllergies, setRemoveAllergies] = useState<string[]>([]);
   const { user, setUser } = useUser();
+  const [userId, setUserId] = useState<string>();
 
   const kgToLbs = (newUnit: "kg" | "lbs") => {
     if (newUnit === unit) return;
@@ -91,8 +88,7 @@ export default function ProfileClient({ initialData }: ProfileClientProps) {
   const handleSaveToDb = async () => {
     try {
       let current_avatar = profile.avatar_url;
-      //preview image to database table
-      console.log("start of handle fucntion!!!");
+      console.log("Temp picture:", tempPicture);
       if (tempPicture.tempFile) {
         const formData = new FormData();
         formData.append("avatar", tempPicture.tempFile);
@@ -136,7 +132,7 @@ export default function ProfileClient({ initialData }: ProfileClientProps) {
         setSavedAllergies((prev) => [...prev, ...addedAllergy]);
         setAddedAllergies([]);
         setRemoveAllergies([]);
-        setTempPicture({ tempFile: null, previewUrl: null });
+        setTempPicture({ tempFile: null, previewUrl: current_avatar });
         console.log("Profile update successful!!");
       }
       console.log("end of handle fucntion!!!");
@@ -155,7 +151,10 @@ export default function ProfileClient({ initialData }: ProfileClientProps) {
     const file = e.target.files?.[0];
     if (!file) return;
     const tempUrl = URL.createObjectURL(file);
+    console.log("file:", file);
+    console.log("url:", tempUrl);
     setTempPicture({ tempFile: file, previewUrl: tempUrl });
+
     console.log("Image added to preview!!");
   };
 
@@ -185,9 +184,11 @@ export default function ProfileClient({ initialData }: ProfileClientProps) {
                 }}
                 className="w-32 h-32 rounded-3xl bg-amber-700 flex items-center justify-center border-4 border-amber-600 shadow-xl"
               >
-                {profile.avatar_url ? (
+                {tempPicture.previewUrl || profile.avatar_url ? (
                   <Image
-                    src={tempPicture.previewUrl || profile.avatar_url}
+                    src={
+                      tempPicture.previewUrl || (profile.avatar_url as string)
+                    }
                     fill
                     className="object-cover p-2 border-2 border-amber-600 bg-amber-600 rounded-3xl"
                     alt="Profile Picture"

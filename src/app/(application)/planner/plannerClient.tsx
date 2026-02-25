@@ -6,9 +6,10 @@ import { Calendar } from "@/components/ui/calendar";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Item } from "../fridge/page";
-import { foodRecipe } from "../types/recipe";
+
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { foodRecipe } from "@/app/types/recipe";
 
 type DietPreference = "veg" | "non-veg" | null;
 

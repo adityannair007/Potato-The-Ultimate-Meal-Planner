@@ -8,7 +8,13 @@ export type Item = {
 
 export default async function ProfilePage() {
   const supabase = await createClient();
-  const user_id = "d7b8a1c2-e3f4-4a5b-9c6d-7e8f9a0b1c2d";
+  const { data: userData, error: authError } = await supabase.auth.getUser();
+  const user_id = userData.user?.id;
+  if (authError || !user_id) {
+    throw new Error("Unauthorized: Please log in again.");
+  }
+
+  // const user_id = "d7b8a1c2-e3f4-4a5b-9c6d-7e8f9a0b1c2d";
   const { data, error } = await supabase
     .from("users")
     .select(

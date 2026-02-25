@@ -1,6 +1,6 @@
+import { createClient } from "@/app/lib/supabase/server";
 import { Item } from "../fridge/page";
-import { createClient } from "../lib/supabase/server";
-import { foodRecipe } from "../types/recipe";
+
 import PlannerClient from "./plannerClient";
 
 export default async function Planner() {

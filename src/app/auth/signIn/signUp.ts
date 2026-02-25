@@ -4,6 +4,29 @@ import { createClient } from "@/app/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+export async function signUp(formData: FormData) {
+  console.log("Sign up function called!!");
+  const supabase = await createClient();
+
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
+
+  const { data: signUpData, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: { username: "Potato_user" },
+    },
+  });
+
+  if (error) {
+    console.error("Signup error:", error.message);
+    return { success: false, error: error.message };
+  }
+
+  return { success: true };
+}
+
 export async function sendOTP(formData: FormData) {
   console.log("Entered sendOtp function!!!");
   const supabase = await createClient();
@@ -17,18 +40,14 @@ export async function sendOTP(formData: FormData) {
     email: email,
     options: {
       shouldCreateUser: true,
-      // Use the server-only variable
       emailRedirectTo: process.env.SITE_URL + "/home",
     },
   });
 
   if (error) {
     console.error("Error sending OTP:", error.message);
-    // Redirect back with an error message in the URL
     return redirect(`/login?error=${encodeURIComponent(error.message)}`);
   }
-
-  // Success! Do nothing, just let the user see the OTP drawer.
   console.log("OTP email sent successfully.");
 }
 
@@ -40,20 +59,14 @@ export async function verifyEmailOtp(formData: FormData) {
   const otp = formData.get("otp") as string;
   console.log("Email: ", email, "Otp: ", otp);
 
-  if (!email || !otp) {
-    return redirect("/login?error=Email and OTP are required.");
-  }
-
   const { error } = await supabase.auth.verifyOtp({
     email: email,
     token: otp,
-    type: "email",
+    type: "signup",
   });
 
   if (error) {
-    console.error("Error verifying OTP:", error.message);
-    // BUG FIX: Redirect on error, don't continue!
-    return redirect("/login?error=Invalid or expired OTP.");
+    return { success: false, error: error.message };
   }
 
   // Success! User is signed in.

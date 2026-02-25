@@ -1,7 +1,7 @@
 import HomeClient from "./homeClient";
 import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
-import { foodRecipe } from "../types/recipe";
+import { foodRecipe } from "@/app/types/recipe";
 
 let fetching = false;
 
@@ -11,7 +11,7 @@ async function fetchRecipes(
   allergen: string[],
   cuisine: string[],
   mealType: string[],
-  diet: string
+  diet: string,
 ): Promise<foodRecipe[]> {
   if (labels.length === 0 || fetching) return [];
 
@@ -84,7 +84,7 @@ export default async function HomePage({
       allergies,
       cuisines,
       mealTypes,
-      diet
+      diet,
     );
   }
 
