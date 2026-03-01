@@ -27,6 +27,39 @@ export async function signUp(formData: FormData) {
   return { success: true };
 }
 
+//both function are called when reset password button is clicked!
+export async function resetPassword(formData: FormData) {
+  console.log("reset function called!");
+  const email = formData.get("email") as string;
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(email);
+  if (error) return { success: false, error: error.message };
+  return { success: true };
+}
+
+export async function verifyOtpForResetPassword(formData: FormData) {
+  console.log("verify for password change function called!");
+
+  const email = formData.get("email") as string;
+  const otp = formData.get("otp") as string;
+  const password = formData.get("password") as string;
+  const supabase = await createClient();
+  const { error } = await supabase.auth.verifyOtp({
+    email,
+    token: otp,
+    type: "recovery",
+  });
+  if (error) return { success: false, error: error.message };
+
+  const { error: updateError } = await supabase.auth.updateUser({
+    password: password,
+  });
+
+  if (updateError) return { success: false, error: updateError.message };
+  console.log("password updated successfully!");
+  redirect("/signIn");
+}
+
 export async function sendOTP(formData: FormData) {
   console.log("Entered sendOtp function!!!");
   const supabase = await createClient();
@@ -90,7 +123,6 @@ export async function login(formdata: FormData) {
 
   if (error) {
     console.error("Login Error:", error.message);
-    // Use a specific error route or redirect back to login
     return redirect("/login?error=Invalid email or password.");
   }
 

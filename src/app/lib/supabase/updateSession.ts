@@ -16,30 +16,43 @@ export async function updateSession(request: NextRequest) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
+            request.cookies.set(name, value),
           );
           supabaseResponse = NextResponse.next({
             request,
           });
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
+            supabaseResponse.cookies.set(name, value, options),
           );
         },
       },
-    }
+    },
   );
 
-  const { data } = await supabase.auth.getClaims();
-  const user = data?.claims;
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
 
-  if (
-    request.nextUrl.pathname !== "/" &&
-    !user &&
-    !request.nextUrl.pathname.startsWith("/login") &&
-    !request.nextUrl.pathname.startsWith("/auth")
-  ) {
+  if (!user || authError) {
+    if (
+      request.nextUrl.pathname !== "/" &&
+      !user &&
+      !request.nextUrl.pathname.startsWith("/signIn") &&
+      !request.nextUrl.pathname.startsWith("/resetPassword")
+    ) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/signIn";
+      return NextResponse.redirect(url);
+    }
+  }
+
+  const authRoutes =
+    request.nextUrl.pathname.startsWith("/signIn") ||
+    request.nextUrl.pathname.startsWith("/resetPassword");
+  if (user && authRoutes) {
     const url = request.nextUrl.clone();
-    url.pathname = "/auth/login";
+    url.pathname = "/home";
     return NextResponse.redirect(url);
   }
 

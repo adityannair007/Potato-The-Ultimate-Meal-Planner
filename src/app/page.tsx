@@ -29,8 +29,8 @@ export default function Home() {
                 size="lg"
                 className="bg-amber-600 hover:bg-amber-700 text-white"
               >
-                <Link href="/fridge">
-                  Go to My Fridge <ArrowRight className="ml-2 h-5 w-5" />
+                <Link href="/signIn">
+                  Sign up <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </Button>
               <Button
