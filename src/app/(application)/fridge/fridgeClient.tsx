@@ -2,19 +2,18 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { deleteIngredient, saveIngredients } from "../home/actions";
+import { deleteIngredient, saveIngredients } from "./actions";
 import { useRouter } from "next/navigation";
 import { type Item } from "./page";
 import { Plus, Search } from "lucide-react";
+import { useFridge } from "@/app/context/FridgeContext";
+import { ingredient } from "@/app/types/fridge";
 
 type FridgeClientProps = {
   initialFridgeItems: Item[];
-  initialAllergens: Item[];
-  initialCuisines: Item[];
 };
 
 type DietPreference = "veg" | "non-veg" | null;
-
 const MEAL_TYPE_OPTIONS = ["Breakfast", "Lunch", "Dinner"];
 const CUISINE_OPTIONS = [
   "Indian",
@@ -25,18 +24,13 @@ const CUISINE_OPTIONS = [
   "Korean",
 ];
 
-export default function FridgeClient({
-  initialFridgeItems,
-  initialAllergens,
-  initialCuisines,
-}: FridgeClientProps) {
-  const router = useRouter();
+export default function FridgeClient() {
+  const { ingredients, setIngredients, addIngredients, removeIngredients } =
+    useFridge();
+  console.log("Fridge data:", ingredients);
   const [veggie, setVeggie] = useState<string>("");
   const [addedItem, setAddedItems] = useState<Item[]>([]);
-  const [labels, setLabels] = useState<Item[]>(initialFridgeItems);
-
-  const [allergen, setAllergen] = useState<Item[]>(initialAllergens);
-
+  const [labels, setLabels] = useState<ingredient[]>(ingredients);
   const [dietPreference, setDietPreference] = useState<DietPreference>(null);
   const [mealTypes, setMealTypes] = useState<string[]>([]);
   const [selectedCuisines, setSelectedCuisines] = useState<string[]>([]);
@@ -56,18 +50,15 @@ export default function FridgeClient({
     const itemsToSave = addedItem.map((item) => ({ name: item.name }));
     if (itemsToSave.length === 0) return;
     await saveIngredients(itemsToSave);
-    const newItemsWithTempIds = addedItem.map((item) => ({
-      ...item,
-      id: Date.now(),
-    }));
-    setLabels((prev) => [...prev, ...newItemsWithTempIds]);
+    setIngredients(itemsToSave);
     setAddedItems([]);
   };
 
-  const handleDeleteIngredient = async (id: number) => {
+  const handleDeleteIngredient = async (id: string) => {
     await deleteIngredient(id);
-    setLabels((prev) => prev.filter((item) => item.id !== id));
+    setLabels((prev) => prev.filter((item) => item.fridge_id !== id));
   };
+
   const handleDietToggle = () => {
     setDietPreference((prev) => {
       if (prev === null) return "veg";
@@ -75,37 +66,17 @@ export default function FridgeClient({
       return null;
     });
   };
+
   const handleToggle = (
     item: string,
     list: string[],
-    setter: React.Dispatch<React.SetStateAction<string[]>>
+    setter: React.Dispatch<React.SetStateAction<string[]>>,
   ) => {
     if (list.includes(item)) {
       setter((prev) => prev.filter((i) => i !== item));
     } else {
       setter((prev) => [...prev, item]);
     }
-  };
-
-  const handleFindRecipes = () => {
-    const allIngredients = [
-      ...labels.map((item) => item.name),
-      ...addedItem.map((item) => item.name),
-    ];
-    const allAllergens = allergen.map((item) => item.name);
-
-    const params = new URLSearchParams();
-
-    allIngredients.forEach((item) => params.append("ingredients", item));
-    allAllergens.forEach((item) => params.append("allergies", item));
-    mealTypes.forEach((meal) => params.append("mealType", meal));
-    selectedCuisines.forEach((cuisine) => params.append("cuisine", cuisine));
-
-    if (dietPreference) {
-      params.set("diet", dietPreference);
-    }
-
-    router.push(`/home?${params.toString()}`);
   };
 
   return (
@@ -191,99 +162,6 @@ export default function FridgeClient({
             ))}
           </div>
         </div>
-      </div>
-
-      <div className="flex flex-col p-6 w-1/2 bg-white shadow-lg rounded-2xl gap-y-6">
-        <h2 className="text-2xl font-semibold text-gray-800 border-b pb-4">
-          Find a Recipe
-        </h2>
-
-        <div className="w-full">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Diet Preference
-          </label>
-          <Button
-            onClick={handleDietToggle}
-            className={`w-full h-12 flex items-center justify-center gap-x-3 text-lg font-semibold ${
-              dietPreference === "veg"
-                ? "bg-green-500 hover:bg-green-600 text-white"
-                : dietPreference === "non-veg"
-                ? "bg-red-500 hover:bg-red-600 text-white"
-                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-            }`}
-          >
-            <div
-              className={`w-6 h-6 rounded-md flex items-center justify-center border-2 ${
-                dietPreference ? "border-white" : "border-gray-400"
-              }`}
-            >
-              <div
-                className={`w-3 h-3 rounded-full ${
-                  dietPreference ? "bg-white" : "bg-gray-400"
-                }`}
-              ></div>
-            </div>
-            {dietPreference === "veg"
-              ? "Veg"
-              : dietPreference === "non-veg"
-              ? "Non-Veg"
-              : "Select Diet"}
-          </Button>
-        </div>
-
-        <div className="w-full">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Meal Type
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {MEAL_TYPE_OPTIONS.map((meal) => (
-              <Button
-                key={meal}
-                onClick={() => handleToggle(meal, mealTypes, setMealTypes)}
-                variant="outline"
-                className={`flex-grow ${
-                  mealTypes.includes(meal)
-                    ? "bg-amber-600 text-white hover:bg-amber-700 border-amber-600"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                {meal}
-              </Button>
-            ))}
-          </div>
-        </div>
-
-        <div className="w-full">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Cuisine
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {CUISINE_OPTIONS.map((cuisine) => (
-              <Button
-                key={cuisine}
-                onClick={() =>
-                  handleToggle(cuisine, selectedCuisines, setSelectedCuisines)
-                }
-                variant="outline"
-                className={`flex-grow ${
-                  selectedCuisines.includes(cuisine)
-                    ? "bg-amber-600 text-white hover:bg-amber-700 border-amber-600"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                {cuisine}
-              </Button>
-            ))}
-          </div>
-        </div>
-
-        <Button
-          onClick={handleFindRecipes}
-          className="w-full bg-amber-600 text-white hover:bg-amber-700 p-6 text-lg font-bold mt-auto flex items-center gap-x-2" // Amber
-        >
-          <Search size={20} />
-          Find Recipes
-        </Button>
       </div>
     </div>
   );

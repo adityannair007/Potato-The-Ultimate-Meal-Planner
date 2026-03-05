@@ -7,9 +7,7 @@ export type user = {
   gender: string | null;
   weight_goal: number | null;
   allergies: {
-    allergy: {
-      allergy_id: number;
-      name: string;
-    }[];
+    allergy_id: string;
+    name: string;
   }[];
 };

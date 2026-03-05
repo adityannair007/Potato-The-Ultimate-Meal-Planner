@@ -1,169 +1,101 @@
 "use client";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { GiPotato } from "react-icons/gi";
-
-import { type Item } from "./page";
 import { LogOut } from "lucide-react";
 import {
   Select,
   SelectContent,
-  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
 import { user } from "../../types/user";
-
 import * as motion from "motion/react-client";
 import { logout, updateUserDetails, uploadAvatar } from "./actions";
 import Image from "next/image";
 import { useUser } from "../../context/UserContext";
-import { createClient } from "@/app/lib/supabase/server";
+import { allergy } from "@/app/types/allergy";
 
-type ProfileClientProps = {
-  initialData: user;
-};
+export default function ProfileClient() {
+  const { user, setUser } = useUser();
 
-export default function ProfileClient({ initialData }: ProfileClientProps) {
-  const [profile, setProfile] = useState(initialData);
-  const [tempPicture, setTempPicture] = useState({
-    tempFile: null as File | null,
-    previewUrl: initialData.avatar_url as string | null,
+  //draft implementation
+  const [draft, setDraft] = useState<Partial<user>>({});
+  const getInputValue = (key: keyof Omit<user, "allergies">) => {
+    const value = draft[key] ?? user?.[key];
+    return value ?? "";
+  };
+  const [tempPicture, setTempPicture] = useState<{
+    tempFile: File | null;
+    previewUrl: string | null;
+  }>({
+    tempFile: null,
+    previewUrl: null,
   });
   const [unit, setUnit] = useState<"kg" | "lbs">("kg");
-  const [haveGoal, setHaveGoal] = useState<boolean>(
-    profile.weight != profile.weight_goal,
-  );
+  const hasGoal = getInputValue("weight") !== getInputValue("weight_goal");
   const [allergy, setAllergy] = useState<string>("");
-  const [addedAllergy, setAddedAllergies] = useState<Item[]>([]);
-  const [savedAllergies, setSavedAllergies] = useState(
-    initialData.allergies.map((d: any) => ({
-      id: d.allergy.allergy_id,
-      name: d.allergy.name,
-    })) || [],
-  );
-  const [removeAllergies, setRemoveAllergies] = useState<string[]>([]);
-  const { user, setUser } = useUser();
-  const [userId, setUserId] = useState<string>();
+  const [addedAllergy, setAddedAllergies] = useState<allergy[]>([]);
+  const [removedIds, setRemovedIds] = useState<string[]>([]);
+  const [isUpdating, setIsUpdating] = useState(false);
+  console.log("User allergies:", user?.allergies);
+  const currentAllergies = useMemo(() => {
+    const saved =
+      user?.allergies.filter((a) => !removedIds.includes(a.allergy_id)) || [];
+    return [...saved, ...addedAllergy];
+  }, [user, removedIds, addedAllergy]);
 
-  const kgToLbs = (newUnit: "kg" | "lbs") => {
-    if (newUnit === unit) return;
-
-    if (profile.weight == null || profile.weight == 0) return;
-
-    let calculatedWeight: number;
-    if (unit == "kg") {
-      calculatedWeight = Math.round(profile.weight * 2.20462);
-    } else {
-      calculatedWeight = Math.round(profile.weight / 2.20462);
-    }
-    setUnit(newUnit);
-    setProfile((prev) => ({ ...prev, weight: calculatedWeight }));
-  };
-
-  const handleSaveProfile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSaveDraft = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type } = e.target;
-
-    console.log(haveGoal ? "has a goal" : "maintain weight");
-    console.log("weight goal: ", profile.weight_goal);
-
-    setProfile((prev) => ({
+    setDraft((prev) => ({
       ...prev,
       [name]: type === "number" ? (value === "" ? null : Number(value)) : value,
     }));
   };
 
-  const handleAddedAllergies = () => {
-    const trimmed = allergy.trim();
-    console.log("trimmed allergy: ", trimmed);
-    if (!trimmed) return;
-    setAddedAllergies((prev) => [...prev, { id: Date.now(), name: trimmed }]);
-    setAllergy("");
-    console.log("Saved allergies:", savedAllergies);
-    console.log("Initial data:", initialData);
-  };
-
   const handleSaveToDb = async () => {
+    setIsUpdating(true);
     try {
-      let current_avatar = profile.avatar_url;
-      console.log("Temp picture:", tempPicture);
+      let current_avatar = user?.avatar_url || "";
       if (tempPicture.tempFile) {
         const formData = new FormData();
         formData.append("avatar", tempPicture.tempFile);
-
         const res = await uploadAvatar(formData);
-
         if (res.success) {
           current_avatar = res.url;
         }
-        console.log("New changed avatar:", current_avatar);
       }
 
       const isLbs = unit === "lbs";
 
       const payload = {
-        ...profile,
+        ...user,
+        ...draft,
         avatar_url: current_avatar,
         weight: isLbs
-          ? Math.round(profile.weight ?? 0 / 2.204)
-          : profile.weight,
+          ? Math.round(Number(getInputValue("weight")) / 2.204)
+          : getInputValue("weight"),
         newAllergies: addedAllergy.map((a) => a.name.toLowerCase()),
-        toDelete: removeAllergies,
+        toDelete: removedIds,
       };
-      console.log("new allergies: ", payload.newAllergies);
 
       const res = await updateUserDetails(payload);
       if (res.success) {
-        const updatedAllergies = [
-          ...savedAllergies.map((a) => ({
-            allergy: [{ allergy_id: a.id, name: a.name }],
-          })),
-          ...addedAllergy.map((a) => ({
-            allergy: [{ allergy_id: a.id, name: a.name }],
-          })),
-        ];
         setUser({
-          ...profile,
-          avatar_url: current_avatar,
-          allergies: updatedAllergies,
-        });
-        setSavedAllergies((prev) => [...prev, ...addedAllergy]);
+          ...payload,
+          allergies: currentAllergies,
+        } as user);
+        setDraft({});
         setAddedAllergies([]);
-        setRemoveAllergies([]);
-        setTempPicture({ tempFile: null, previewUrl: current_avatar });
+        setRemovedIds([]);
+        setTempPicture({ tempFile: null, previewUrl: null });
         console.log("Profile update successful!!");
       }
       console.log("end of handle fucntion!!!");
     } catch (error) {
       console.log("Error: ", error);
-    }
-  };
-
-  const handleDeleteFromDb = async (id: string) => {
-    setRemoveAllergies((prev) => [...prev, id]);
-    setSavedAllergies((prev) => prev.filter((item) => item.id !== id));
-  };
-
-  const handleUploadAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log("Handle upload avatar function called!!");
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const tempUrl = URL.createObjectURL(file);
-    console.log("file:", file);
-    console.log("url:", tempUrl);
-    setTempPicture({ tempFile: file, previewUrl: tempUrl });
-
-    console.log("Image added to preview!!");
-  };
-
-  const goalOrNot = (obj: "maintain" | "goal") => {
-    if (obj == "maintain") {
-      setProfile((prev) => ({ ...prev, weight_goal: profile.weight }));
-      setHaveGoal(false);
-    } else if (obj == "goal") {
-      setHaveGoal(true);
     }
   };
 
@@ -184,11 +116,9 @@ export default function ProfileClient({ initialData }: ProfileClientProps) {
                 }}
                 className="w-32 h-32 rounded-3xl bg-amber-700 flex items-center justify-center border-4 border-amber-600 shadow-xl"
               >
-                {tempPicture.previewUrl || profile.avatar_url ? (
+                {tempPicture.previewUrl || user?.avatar_url ? (
                   <Image
-                    src={
-                      tempPicture.previewUrl || (profile.avatar_url as string)
-                    }
+                    src={tempPicture.previewUrl || (user?.avatar_url as string)}
                     fill
                     className="object-cover p-2 border-2 border-amber-600 bg-amber-600 rounded-3xl"
                     alt="Profile Picture"
@@ -200,14 +130,21 @@ export default function ProfileClient({ initialData }: ProfileClientProps) {
                 )}
                 <input
                   type="file"
-                  id="avatar-input"
+                  id="avatar"
                   hidden
                   accept="image/*"
-                  onChange={handleUploadAvatar}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file)
+                      setTempPicture({
+                        tempFile: file,
+                        previewUrl: URL.createObjectURL(file),
+                      });
+                  }}
                 />
 
                 <label
-                  htmlFor="avatar-input"
+                  htmlFor="avatar"
                   className="absolute inset-0 cursor-pointer flex items-center justify-center rounded-3xl"
                 ></label>
               </motion.div>
@@ -222,8 +159,8 @@ export default function ProfileClient({ initialData }: ProfileClientProps) {
                   className="bg-amber-800/50 border-none text-white placeholder:text-amber-600 h-12 text-lg focus-visible:ring-amber-600"
                   placeholder="Enter Username"
                   name="username"
-                  value={profile?.username || ""}
-                  onChange={handleSaveProfile}
+                  value={getInputValue("username") || ""}
+                  onChange={handleSaveDraft}
                 />
               </div>
 
@@ -238,10 +175,10 @@ export default function ProfileClient({ initialData }: ProfileClientProps) {
                       name="weight"
                       className="bg-transparent border-none text-amber focus-visible:ring-1 focus-visible:ring-amber-600"
                       placeholder="68"
-                      value={profile?.weight || ""}
-                      onChange={handleSaveProfile}
+                      value={getInputValue("weight")}
+                      onChange={handleSaveDraft}
                     />
-                    <Select defaultValue="kg" onValueChange={kgToLbs}>
+                    <Select value={unit} onValueChange={(v: any) => setUnit(v)}>
                       <SelectTrigger className="w-20 bg-transparent border-none text-xs font-bold tracking-wide text-amber-500">
                         <SelectValue />
                       </SelectTrigger>
@@ -260,10 +197,10 @@ export default function ProfileClient({ initialData }: ProfileClientProps) {
                     <Input
                       type="number"
                       name="height"
-                      value={profile?.height || ""}
+                      value={getInputValue("height")}
                       className="bg-transparent border-none text-white focus-visible:ring-1 focus-visible:ring-amber-600"
                       placeholder="175"
-                      onChange={handleSaveProfile}
+                      onChange={handleSaveDraft}
                     />
                     <span className="text-xs font-bold pl-1 text-amber-500">
                       CM
@@ -278,9 +215,9 @@ export default function ProfileClient({ initialData }: ProfileClientProps) {
                     Gender
                   </label>
                   <Select
-                    defaultValue={profile?.gender || undefined}
+                    value={String(getInputValue("gender"))}
                     onValueChange={(value) =>
-                      setProfile((prev) => ({ ...prev, gender: value }))
+                      setDraft((prev) => ({ ...prev, gender: value }))
                     }
                   >
                     <SelectTrigger className="w-39 bg-amber-700 border-none text-xs focus-visible:ring-1 focus-visible:ring-amber-600">
@@ -299,8 +236,8 @@ export default function ProfileClient({ initialData }: ProfileClientProps) {
                   <Input
                     type="number"
                     name="age"
-                    value={profile?.age || ""}
-                    onChange={handleSaveProfile}
+                    value={getInputValue("age")}
+                    onChange={handleSaveDraft}
                     className="bg-amber-800/50 border-none text-white focus-visible:ring-1 focus-visible:ring-amber-600"
                   />
                 </div>
@@ -317,8 +254,16 @@ export default function ProfileClient({ initialData }: ProfileClientProps) {
               <div className="flex flex-wrap items-end gap-4 p-6 bg-gray-50 rounded-2xl border border-gray-100">
                 <div className="flex-1 min-w-[200px]">
                   <Select
-                    value={haveGoal ? "goal" : "maintain"}
-                    onValueChange={goalOrNot}
+                    value={hasGoal ? "goal" : "maintain"}
+                    onValueChange={(v) =>
+                      setDraft((prev) => ({
+                        ...prev,
+                        weight_goal:
+                          v === "maintain"
+                            ? Number(getInputValue("weight"))
+                            : 0,
+                      }))
+                    }
                   >
                     <SelectTrigger className="h-12 border-2 focus:ring-amber-500">
                       <SelectValue placeholder="Select intent" />
@@ -332,15 +277,15 @@ export default function ProfileClient({ initialData }: ProfileClientProps) {
                   </Select>
                 </div>
 
-                {haveGoal && (
+                {hasGoal && (
                   <div className="flex items-center gap-3">
                     <Input
                       type="number"
                       name="weight_goal"
                       className="w-24 h-12 border-2 text-center text-xl font-bold"
                       placeholder="70"
-                      onChange={handleSaveProfile}
-                      value={profile?.weight_goal || ""}
+                      onChange={handleSaveDraft}
+                      value={getInputValue("weight_goal") || ""}
                     />
                     <span className="font-bold text-gray-400">KG</span>
                   </div>
@@ -362,23 +307,26 @@ export default function ProfileClient({ initialData }: ProfileClientProps) {
                     onChange={(e) => setAllergy(e.target.value)}
                   />
                   <Button
-                    onClick={handleAddedAllergies}
+                    onClick={() => {
+                      if (allergy) {
+                        setAddedAllergies((prev) => [
+                          ...prev,
+                          { allergy_id: `temp-${Date.now()}`, name: allergy },
+                        ]);
+                        setAllergy("");
+                      }
+                    }}
                     className="h-12 px-8 bg-amber-600 hover:bg-amber-700 text-white shadow-lg shadow-amber-600 hover:shadow-amber-700 cursor-pointer"
                   >
                     Add
                   </Button>
                 </div>
 
-                <div className="w-full h-40 p-6 bg-orange-50/50 border-2 border-dashed border-orange-200 rounded-2xl overflow-y-auto">
+                {/* <div className="w-full h-40 p-6 bg-orange-50/50 border-2 border-dashed border-orange-200 rounded-2xl overflow-y-auto">
                   <div className="flex flex-wrap gap-3">
-                    {savedAllergies.length === 0 &&
-                      addedAllergy.length === 0 && (
-                        <p className="text-orange-300 italic text-sm">
-                          No restrictions listed. Eat safe!
-                        </p>
-                      )}
-                    {savedAllergies.map((item) => (
-                      <div
+                    {currentAllergies.length === 0 &&
+                      currentAllergies.map((a) => (
+                        <div
                         key={item.id}
                         className="group flex items-center gap-2 px-4 py-2 bg-white border border-orange-200 rounded-xl text-sm font-semibold text-orange-800 shadow-sm transition-all hover:border-orange-400"
                       >
@@ -390,6 +338,13 @@ export default function ProfileClient({ initialData }: ProfileClientProps) {
                           x
                         </button>
                       </div>
+                      )) === 0 && (
+                        <p className="text-orange-300 italic text-sm">
+                          No restrictions listed. Eat safe!
+                        </p>
+                      )}
+                    {savedAllergies.map((item) => (
+                      
                     ))}
 
                     {addedAllergy.map((item) => (
@@ -411,6 +366,29 @@ export default function ProfileClient({ initialData }: ProfileClientProps) {
                       </div>
                     ))}
                   </div>
+                </div> */}
+                <div className="flex flex-wrap gap-2 p-4 bg-orange-50/30 rounded-2xl min-h-[100px] border-2 border-dashed border-orange-100">
+                  {currentAllergies.map((a) => (
+                    <span
+                      key={a.allergy_id}
+                      className="group flex items-center gap-2 px-4 py-2 bg-white border border-orange-200 rounded-xl text-sm font-semibold text-orange-800 shadow-sm transition-all hover:border-orange-400"
+                    >
+                      {capitalize(a.name)}
+                      <Button
+                        variant="ghost"
+                        className="hover:text-red-600 cursor-pointer w-5 h-5"
+                        onClick={() => {
+                          if (a.allergy_id.startsWith("temp-"))
+                            setAddedAllergies((p) =>
+                              p.filter((na) => na.allergy_id !== a.allergy_id),
+                            );
+                          else setRemovedIds((p) => [...p, a.allergy_id]);
+                        }}
+                      >
+                        x
+                      </Button>
+                    </span>
+                  ))}
                 </div>
               </div>
             </section>

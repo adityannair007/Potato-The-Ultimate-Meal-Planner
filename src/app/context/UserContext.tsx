@@ -1,27 +1,12 @@
 "use client";
 
 import { createContext, ReactNode, useContext, useState } from "react";
-
-interface userProfile {
-  username: string | null;
-  avatar_url: string | null;
-  weight: number | null;
-  height: number | null;
-  age: number | null;
-  gender: string | null;
-  weight_goal: number | null;
-  allergies: {
-    allergy: {
-      allergy_id: number;
-      name: string;
-    }[];
-  }[];
-}
+import { user } from "../types/user";
 
 const UserContext = createContext<
   | {
-      user: userProfile | null;
-      setUser: (user: userProfile | null) => void;
+      user: user | null;
+      setUser: (user: user | null) => void;
     }
   | undefined
 >(undefined);
@@ -31,9 +16,9 @@ export function UserProvider({
   initialUser,
 }: {
   children: ReactNode;
-  initialUser: userProfile | null;
+  initialUser: user | null;
 }) {
-  const [user, setUser] = useState<userProfile | null>(initialUser);
+  const [user, setUser] = useState<user | null>(initialUser);
 
   return (
     <UserContext.Provider value={{ user, setUser }}>
