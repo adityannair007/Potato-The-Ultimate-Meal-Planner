@@ -6,8 +6,8 @@ import { ingredient } from "../types/fridge";
 interface fridgeContextType {
   ingredients: ingredient[];
   setIngredients: (ingredients: ingredient[]) => void;
-  addIngredients: (ingredient: ingredient) => void;
-  removeIngredients: (ingredient: string) => void;
+  addIngredient: (ingredient: ingredient) => void;
+  removeIngredient: (ingredient: string) => void;
 }
 
 const FridgeContext = createContext<fridgeContextType | undefined>(undefined);
@@ -21,14 +21,14 @@ export function FridgeProvider({
 }) {
   const [ingredients, setIngredients] =
     useState<ingredient[]>(initialIngredients);
-  const addIngredients = (ingredient: ingredient) =>
+  const addIngredient = (ingredient: ingredient) =>
     setIngredients((prev) => [...prev, ingredient]);
-  const removeIngredients = (id: string) =>
+  const removeIngredient = (id: string) =>
     setIngredients((prev) => prev.filter((i) => i.fridge_id !== id));
 
   return (
     <FridgeContext.Provider
-      value={{ ingredients, setIngredients, addIngredients, removeIngredients }}
+      value={{ ingredients, setIngredients, addIngredient, removeIngredient }}
     >
       {children}
     </FridgeContext.Provider>

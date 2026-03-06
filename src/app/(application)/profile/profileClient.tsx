@@ -55,6 +55,19 @@ export default function ProfileClient() {
     }));
   };
 
+  const kgToLbs = (unit: "kg" | "lbs") => {
+    const weight = Number(getInputValue("weight")) ?? null;
+    if (unit === "lbs" && weight) {
+      const weightInLbs = Math.round(weight * 2.204);
+      setDraft((p) => ({ ...p, weight: weightInLbs }));
+      setUnit("lbs");
+    } else if (unit === "kg" && weight) {
+      const weightInKg = Math.round(weight / 2.204);
+      setDraft((p) => ({ ...p, weight: weightInKg }));
+      setUnit("kg");
+    }
+  };
+
   const handleSaveToDb = async () => {
     setIsUpdating(true);
     try {
@@ -91,6 +104,7 @@ export default function ProfileClient() {
         setAddedAllergies([]);
         setRemovedIds([]);
         setTempPicture({ tempFile: null, previewUrl: null });
+        setUnit("kg");
         console.log("Profile update successful!!");
       }
       console.log("end of handle fucntion!!!");
@@ -176,9 +190,14 @@ export default function ProfileClient() {
                       className="bg-transparent border-none text-amber focus-visible:ring-1 focus-visible:ring-amber-600"
                       placeholder="68"
                       value={getInputValue("weight")}
-                      onChange={handleSaveDraft}
+                      onChange={(e) =>
+                        setDraft((p) => ({
+                          ...p,
+                          weight: Number(e.target.value),
+                        }))
+                      }
                     />
-                    <Select value={unit} onValueChange={(v: any) => setUnit(v)}>
+                    <Select value={unit} onValueChange={kgToLbs}>
                       <SelectTrigger className="w-20 bg-transparent border-none text-xs font-bold tracking-wide text-amber-500">
                         <SelectValue />
                       </SelectTrigger>

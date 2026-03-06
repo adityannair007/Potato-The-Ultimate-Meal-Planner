@@ -3,53 +3,38 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { deleteIngredient, saveIngredients } from "./actions";
-import { useRouter } from "next/navigation";
-import { type Item } from "./page";
 import { Plus, Search } from "lucide-react";
 import { useFridge } from "@/app/context/FridgeContext";
 import { ingredient } from "@/app/types/fridge";
 
-type FridgeClientProps = {
-  initialFridgeItems: Item[];
-};
-
-type DietPreference = "veg" | "non-veg" | null;
-const MEAL_TYPE_OPTIONS = ["Breakfast", "Lunch", "Dinner"];
-const CUISINE_OPTIONS = [
-  "Indian",
-  "Italian",
-  "Chinese",
-  "Moroccan",
-  "Japanese",
-  "Korean",
-];
-
 export default function FridgeClient() {
-  const { ingredients, setIngredients, addIngredients, removeIngredients } =
+  const { ingredients, setIngredients, addIngredient, removeIngredient } =
     useFridge();
   console.log("Fridge data:", ingredients);
   const [veggie, setVeggie] = useState<string>("");
-  const [addedItem, setAddedItems] = useState<Item[]>([]);
+  const [addedItem, setAddedItems] = useState<ingredient[]>([]);
   const [labels, setLabels] = useState<ingredient[]>(ingredients);
-  const [dietPreference, setDietPreference] = useState<DietPreference>(null);
-  const [mealTypes, setMealTypes] = useState<string[]>([]);
-  const [selectedCuisines, setSelectedCuisines] = useState<string[]>([]);
 
   const handleAddedItems = async () => {
     const trimmed = veggie.trim();
     if (!trimmed) return;
-    setAddedItems((prev) => [...prev, { id: Date.now(), name: trimmed }]);
+    setAddedItems((prev) => [
+      ...prev,
+      { fridge_id: String(Date.now()), name: trimmed },
+    ]);
     setVeggie("");
   };
 
-  const deleteItem = async (id: number) => {
-    setAddedItems((prev) => prev.filter((i) => i.id !== id));
+  const deleteItem = async (id: string) => {
+    setAddedItems((prev) => prev.filter((i) => i.fridge_id !== id));
   };
 
   const handleSaveIngredient = async () => {
     const itemsToSave = addedItem.map((item) => ({ name: item.name }));
     if (itemsToSave.length === 0) return;
-    await saveIngredients(itemsToSave);
+    const res = await saveIngredients(itemsToSave);
+    if (res.success) {
+    }
     setIngredients(itemsToSave);
     setAddedItems([]);
   };
@@ -58,27 +43,6 @@ export default function FridgeClient() {
     await deleteIngredient(id);
     setLabels((prev) => prev.filter((item) => item.fridge_id !== id));
   };
-
-  const handleDietToggle = () => {
-    setDietPreference((prev) => {
-      if (prev === null) return "veg";
-      if (prev === "veg") return "non-veg";
-      return null;
-    });
-  };
-
-  const handleToggle = (
-    item: string,
-    list: string[],
-    setter: React.Dispatch<React.SetStateAction<string[]>>,
-  ) => {
-    if (list.includes(item)) {
-      setter((prev) => prev.filter((i) => i !== item));
-    } else {
-      setter((prev) => [...prev, item]);
-    }
-  };
-
   return (
     <div className="flex flex-row w-full min-h-full p-8 gap-x-8 bg-green-50">
       <div className="flex flex-col p-6 w-1/2 bg-white shadow-lg rounded-2xl gap-y-4">
@@ -114,12 +78,12 @@ export default function FridgeClient() {
             )}
             {addedItem.map((item) => (
               <span
-                key={item.id}
+                key={item.fridge_id}
                 className="flex items-center gap-x-2 px-3 py-1 bg-green-200 text-green-900 rounded-full text-sm font-medium"
               >
                 {item.name}
                 <button
-                  onClick={() => deleteItem(item.id)}
+                  onClick={() => deleteItem(String(item.fridge_id))}
                   className="text-green-700 hover:text-green-900 font-bold"
                 >
                   &times;
@@ -148,12 +112,12 @@ export default function FridgeClient() {
             )}
             {labels.map((label) => (
               <span
-                key={label.id}
+                key={label.fridge_id}
                 className="flex items-center gap-x-2 px-3 py-1 bg-amber-500 text-white rounded-full text-sm font-medium"
               >
                 {label.name}
                 <button
-                  onClick={() => handleDeleteIngredient(label.id)}
+                  onClick={() => handleDeleteIngredient(label.fridge_id)}
                   className="text-amber-100 hover:text-white font-bold"
                 >
                   &times;

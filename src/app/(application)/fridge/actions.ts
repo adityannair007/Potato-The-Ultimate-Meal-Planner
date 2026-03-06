@@ -10,13 +10,20 @@ export async function saveIngredients(veggie: { name: string }[]) {
   const { data, error: authError } = await supabase.auth.getUser();
   const user_id = data.user?.id;
 
+  const userFridge = veggie.map((items) => ({
+    user_id,
+    items,
+  }));
+
   const { error } = await supabase
     .from("user_fridge")
-    .insert([user_id, veggie])
+    .upsert(userFridge)
     .eq("user_id", user_id);
   if (error) {
     console.log("Error saving ingredients to fridge: ", error);
+    return;
   }
+  return { success: true };
   revalidatePath("/home");
 }
 
