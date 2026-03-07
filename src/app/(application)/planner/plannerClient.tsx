@@ -10,6 +10,7 @@ import { Item } from "../fridge/page";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { foodRecipe } from "@/app/types/recipe";
+import { cn } from "@/lib/utils";
 
 type DietPreference = "veg" | "non-veg" | null;
 
@@ -41,6 +42,14 @@ export default function PlannerClient({
     to: new Date(),
   });
   const [recipes, setRecipes] = useState<foodRecipe[]>([]);
+
+  const filterButtonClass = (selectedState: boolean) =>
+    cn(
+      "flex-grow border transition-colors",
+      selectedState
+        ? "border-primary bg-primary text-primary-foreground hover:bg-primary/90"
+        : "border-border bg-card text-card-foreground hover:bg-accent hover:text-accent-foreground",
+    );
 
   const handleModeChange = (newMode: Mode) => {
     setMode(newMode);
@@ -103,8 +112,8 @@ export default function PlannerClient({
   }
 
   return (
-    <div className="flex flex-row p-3 w-full h-screen gap-4 overflow-hidden">
-      <div className="flex flex-col w-1/2 p-2 gap-4 overflow-y-auto">
+    <div className="flex h-screen w-full flex-row gap-4 overflow-hidden bg-background p-3">
+      <div className="flex w-1/2 flex-col gap-4 overflow-y-auto rounded-3xl border border-border bg-card p-4 shadow-lg shadow-black/5">
         <div className="flex gap-2 mb-2">
           <Button
             variant={mode === "single" ? "default" : "outline"}
@@ -131,11 +140,10 @@ export default function PlannerClient({
           selected={selected}
           onSelect={setSelected}
           numberOfMonths={1}
-          className="rounded-lg border shadow-sm w-full bg-amber-100"
-          buttonVariant={"amber"}
+          className="w-full"
         />
         <div className="w-full">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="mb-2 block text-sm font-medium text-muted-foreground">
             Diet Preference
           </label>
           <Button
@@ -143,28 +151,28 @@ export default function PlannerClient({
             variant="outline"
             className={`w-full h-12 flex items-center justify-center gap-x-3 text-lg font-semibold ${
               dietPreference === "veg"
-                ? "bg-amber-300 hover:bg-amber-400 hover:text-amber-700 text-amber-700 border-amber-600"
+                ? "border-primary bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
                 : dietPreference === "non-veg"
-                  ? "bg-amber-300 hover:bg-amber-400 hover:text-amber-700 text-amber-700 border-amber-600"
-                  : "bg-amber-100 text-orange-300 hover:bg-amber-200 hover:text-amber-700"
+                  ? "border-secondary bg-secondary text-secondary-foreground hover:bg-secondary/90 hover:text-secondary-foreground"
+                  : "border-border bg-card text-muted-foreground hover:bg-accent hover:text-accent-foreground"
             }`}
           >
             <div
               className={`w-6 h-6 rounded-md flex items-center justify-center border-2 ${
                 dietPreference == "veg"
-                  ? "border-green-700 hover:border-amber-700"
+                  ? "border-emerald-700"
                   : dietPreference == "non-veg"
-                    ? "border-red-700 hover:border-amber-700"
-                    : "border-orange-300 hover:border-amber-700"
+                    ? "border-rose-700"
+                    : "border-muted-foreground/40"
               }`}
             >
               <div
                 className={`w-3 h-3 rounded-full ${
                   dietPreference == "veg"
-                    ? "bg-green-700 hover:bg-amber-700"
+                    ? "bg-emerald-700"
                     : dietPreference == "non-veg"
-                      ? "bg-red-700 hover:bg-amber-700"
-                      : "bg-orange-300 hover:bg-amber-700"
+                      ? "bg-rose-700"
+                      : "bg-muted-foreground/40"
                 }`}
               ></div>
             </div>
@@ -176,7 +184,7 @@ export default function PlannerClient({
           </Button>
         </div>
         <div className="w-full">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="mb-2 block text-sm font-medium text-muted-foreground">
             Meal Type
           </label>
           <div className="flex justify-between w-full gap-4">
@@ -185,11 +193,7 @@ export default function PlannerClient({
                 key={meal}
                 onClick={() => handleToggle(meal, mealTypes, setMealTypes)}
                 variant="outline"
-                className={`flex-grow cursor-pointer ${
-                  mealTypes.includes(meal)
-                    ? "bg-amber-300 text-amber-700 hover:bg-amber-400 hover:text-amber-800 border-amber-600"
-                    : "bg-amber-100 text-orange-400 hover:bg-amber-200 hover:text-amber-700"
-                }`}
+                className={filterButtonClass(mealTypes.includes(meal))}
               >
                 {meal}
               </Button>
@@ -197,7 +201,7 @@ export default function PlannerClient({
           </div>
         </div>
         <div className="w-full">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="mb-2 block text-sm font-medium text-muted-foreground">
             Cuisine
           </label>
           <div className="flex flex-wrap gap-2">
@@ -208,11 +212,9 @@ export default function PlannerClient({
                   handleToggle(cuisine, selectedCuisines, setSelectedCuisines)
                 }
                 variant="outline"
-                className={`flex-grow ${
-                  selectedCuisines.includes(cuisine)
-                    ? "bg-amber-300 text-amber-700 hover:bg-amber-400 hover:text-amber-800 border-amber-600"
-                    : "bg-amber-100 text-orange-400 hover:bg-amber-200 hover:text-amber-700"
-                }`}
+                className={filterButtonClass(
+                  selectedCuisines.includes(cuisine),
+                )}
               >
                 {cuisine}
               </Button>
@@ -221,24 +223,24 @@ export default function PlannerClient({
         </div>
 
         <Button
-          className="w-full cursor-pointer bg-amber-600 text-white hover:bg-amber-700 p-6 text-lg font-semibold mt-auto flex items-center gap-x-2"
+          className="mt-auto flex w-full cursor-pointer items-center gap-x-2 p-6 text-lg font-semibold"
           onClick={handlePlan}
         >
           Plan Meal
         </Button>
       </div>
 
-      <div className="flex flex-col w-1/2 p-2">
-        <div className="flex flex-col gap-4 p-4 h-full rounded-xl bg-amber-300 shadow-lg overflow-hidden">
+      <div className="flex w-1/2 flex-col p-2">
+        <div className="flex h-full flex-col gap-4 overflow-hidden rounded-3xl border border-border bg-card p-4 shadow-lg shadow-black/5">
           {!loading && recipes.length == 0 && (
             <>
-              <div className="flex flex-col justify-center h-1/3 items-center rounded-xl text-amber-500 bg-amber-200 border border-amber-400 shadow-lg">
+              <div className="flex h-1/3 flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/40 text-muted-foreground shadow-sm">
                 Breakfast
               </div>
-              <div className="flex flex-col justify-center h-1/3 items-center rounded-xl text-amber-500 bg-amber-200 border border-amber-400 shadow-lg">
+              <div className="flex h-1/3 flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/40 text-muted-foreground shadow-sm">
                 Lunch
               </div>
-              <div className="flex flex-col justify-center h-1/3 items-center rounded-xl text-amber-500 bg-amber-200 border border-amber-400 shadow-lg">
+              <div className="flex h-1/3 flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/40 text-muted-foreground shadow-sm">
                 Dinner
               </div>
             </>
@@ -249,7 +251,7 @@ export default function PlannerClient({
               .map((_, ind) => (
                 <Card
                   key={ind}
-                  className="flex flex-row w-full h-1/3 p-6 gap-4 rounded-xl bg-amber-200 border border-amber-400 shadow-lg"
+                  className="flex h-1/3 w-full flex-row gap-4 rounded-xl border border-border bg-muted/30 p-6 shadow-sm"
                 >
                   <Skeleton className="size-20 shrink-0 rounded-half" />
                   <div className="flex flex-col gap-2 w-full">
@@ -264,24 +266,21 @@ export default function PlannerClient({
             recipes?.map((recipe, index) => (
               <div
                 key={index}
-                /* Added overflow-hidden to the parent to keep the rounded corners clean */
-                className="flex flex-col h-1/3 w-full p-4 rounded-xl bg-amber-200 border border-amber-400 shadow-lg overflow-hidden"
+                className="flex h-1/3 w-full flex-col overflow-hidden rounded-xl border border-border bg-muted/20 p-4 shadow-sm"
               >
                 <div className="flex flex-row h-full w-full gap-4">
-                  {/* Name: Set a width so it doesn't get squashed */}
-                  <div className="font-bold text-amber-900 w-1/4 break-words">
+                  <div className="w-1/4 break-words font-bold text-card-foreground">
                     {recipe.name}
                   </div>
 
-                  {/* Recipe Steps: The scrollable area */}
                   <div className="flex-1 h-full overflow-y-auto pr-2 custom-scrollbar">
                     <ul className="list-none space-y-2">
                       {recipe.recipe.map((step, stepIdx) => (
                         <li
                           key={stepIdx}
-                          className="flex gap-x-3 text-gray-700 text-xs leading-relaxed"
+                          className="flex gap-x-3 text-xs leading-relaxed text-muted-foreground"
                         >
-                          <span className="flex-shrink-0 w-5 h-5 flex items-center justify-center bg-green-100 text-green-800 rounded font-bold text-[10px]">
+                          <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded bg-accent text-[10px] font-bold text-accent-foreground">
                             {stepIdx + 1}
                           </span>
                           {step}
@@ -290,8 +289,7 @@ export default function PlannerClient({
                     </ul>
                   </div>
 
-                  {/* Calories: Fixed width on the right */}
-                  <div className="text-xs font-semibold text-amber-800 w-16 text-right">
+                  <div className="w-16 text-right text-xs font-semibold text-primary">
                     {recipe.calories}{" "}
                     <span className="block text-[10px]">kcal</span>
                   </div>

@@ -5,7 +5,7 @@ import { ingredient } from "../types/fridge";
 
 interface fridgeContextType {
   ingredients: ingredient[];
-  setIngredients: (ingredients: ingredient[]) => void;
+  setIngredients: React.Dispatch<React.SetStateAction<ingredient[]>>;
   addIngredient: (ingredient: ingredient) => void;
   removeIngredient: (ingredient: string) => void;
 }

@@ -1,7 +1,9 @@
 "use client";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
-import { ChefHat, Flame, Utensils, RefreshCw } from "lucide-react";
+import { ChefHat, Flame, RefreshCw } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
 
 // Assuming foodRecipe is imported or defined locally
 type foodRecipe = {
@@ -27,17 +29,17 @@ export default function HomeClient({ recipes }: { recipes: foodRecipe[] }) {
     <div className="flex flex-col gap-y-8 animate-in fade-in duration-500">
       {/* Top Action Bar */}
       <div className="flex justify-between items-center">
-        <p className="text-gray-500 italic">
+        <p className="italic text-muted-foreground">
           Based on your selection, we found {recipes.length} dishes.
         </p>
-        <button
+        <Button
           onClick={handleGenerate}
           disabled={isPending}
-          className="flex items-center gap-x-2 bg-amber-600 hover:bg-amber-700 text-white px-5 py-2 rounded-xl font-bold shadow-md transition-all active:scale-95 disabled:opacity-50"
+          className="rounded-xl px-5 py-2 font-bold shadow-md shadow-black/5"
         >
           <RefreshCw size={18} className={isPending ? "animate-spin" : ""} />
           {isPending ? "Chef is cooking..." : "Generate New Recipes"}
-        </button>
+        </Button>
       </div>
 
       {/* Recipes Grid */}
@@ -45,24 +47,24 @@ export default function HomeClient({ recipes }: { recipes: foodRecipe[] }) {
         {recipes.map((recipe, index) => (
           <div
             key={index}
-            className="group bg-white rounded-3xl shadow-lg border border-green-100 p-6 flex flex-col gap-y-5 hover:border-amber-200 transition-colors"
+            className="group flex flex-col gap-y-5 rounded-3xl border border-border bg-card p-6 shadow-lg shadow-black/5 transition-colors hover:border-ring/50"
           >
             {/* Header: Title & Calories */}
             <div className="flex justify-between items-start gap-x-2">
-              <h3 className="text-xl font-extrabold text-gray-800 group-hover:text-amber-700 transition-colors">
+              <h3 className="text-xl font-extrabold text-card-foreground transition-colors group-hover:text-primary">
                 {recipe.name}
               </h3>
-              <div className="flex items-center gap-x-1 bg-amber-50 text-amber-700 px-3 py-1 rounded-full text-xs font-bold border border-amber-100">
+              <div className="flex items-center gap-x-1 rounded-full border border-border bg-secondary px-3 py-1 text-xs font-bold text-secondary-foreground">
                 <Flame size={14} />
                 {recipe.calories} kcal
               </div>
             </div>
 
-            <hr className="border-green-50" />
+            <hr className="border-border/60" />
 
             {/* Content: Instructions */}
             <div className="flex flex-col gap-y-3">
-              <div className="flex items-center gap-x-2 text-green-700 font-bold text-sm uppercase tracking-wider">
+              <div className="flex items-center gap-x-2 text-sm font-bold uppercase tracking-wider text-primary">
                 <ChefHat size={18} />
                 Instructions
               </div>
@@ -70,9 +72,9 @@ export default function HomeClient({ recipes }: { recipes: foodRecipe[] }) {
                 {recipe.recipe.map((step, stepIdx) => (
                   <li
                     key={stepIdx}
-                    className="flex gap-x-4 text-gray-600 text-sm leading-relaxed"
+                    className="flex gap-x-4 text-sm leading-relaxed text-muted-foreground"
                   >
-                    <span className="flex-shrink-0 w-6 h-6 flex items-center justify-center bg-green-100 text-green-800 rounded-lg font-bold text-xs">
+                    <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg bg-accent text-xs font-bold text-accent-foreground">
                       {stepIdx + 1}
                     </span>
                     {step}

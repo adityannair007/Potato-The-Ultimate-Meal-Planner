@@ -29,10 +29,10 @@ function Calendar({
     <DayPicker
       showOutsideDays={showOutsideDays}
       className={cn(
-        "bg-amber-50 text-amber-950 group/calendar p-6 rounded-2xl shadow-sm [--cell-size:3rem]",
+        "group/calendar rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-sm [--cell-size:3rem]",
         String.raw`rtl:**:[.rdp-button\_next>svg]:rotate-180`,
         String.raw`rtl:**:[.rdp-button\_previous>svg]:rotate-180`,
-        className
+        className,
       )}
       captionLayout={captionLayout}
       formatters={{
@@ -44,75 +44,81 @@ function Calendar({
         root: cn("w-fit", defaultClassNames.root),
         months: cn(
           "relative flex flex-col gap-4 md:flex-row",
-          defaultClassNames.months
+          defaultClassNames.months,
         ),
         month: cn("flex w-full flex-col gap-4", defaultClassNames.month),
         nav: cn(
           "absolute inset-x-0 top-0 flex w-full items-center justify-between px-2 pt-2",
-          defaultClassNames.nav
+          defaultClassNames.nav,
         ),
         button_previous: cn(
-          "h-8 w-8 text-amber-800 hover:bg-amber-100 rounded-full transition-colors",
-          defaultClassNames.button_previous
+          "h-8 w-8 rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground",
+          defaultClassNames.button_previous,
         ),
         button_next: cn(
-          "h-8 w-8 text-amber-800 hover:bg-amber-100 rounded-full transition-colors",
-          defaultClassNames.button_next
+          "h-8 w-8 rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground",
+          defaultClassNames.button_next,
         ),
         month_caption: cn(
-          "flex h-[--cell-size] w-full items-center justify-center text-lg font-bold text-amber-950",
-          defaultClassNames.month_caption
+          "flex h-[--cell-size] w-full items-center justify-center text-lg font-bold text-card-foreground",
+          defaultClassNames.month_caption,
         ),
         dropdowns: cn(
           "flex h-[--cell-size] w-full items-center justify-center gap-1.5 text-sm font-medium",
-          defaultClassNames.dropdowns
+          defaultClassNames.dropdowns,
         ),
         dropdown_root: cn(
           "has-focus:border-ring border-input shadow-xs has-focus:ring-ring/50 has-focus:ring-[3px] relative rounded-md border",
-          defaultClassNames.dropdown_root
+          defaultClassNames.dropdown_root,
         ),
         dropdown: cn(
           "bg-popover absolute inset-0 opacity-0",
-          defaultClassNames.dropdown
+          defaultClassNames.dropdown,
         ),
         caption_label: cn(
           "select-none font-medium",
           captionLayout === "label"
             ? "text-sm"
             : "[&>svg]:text-muted-foreground flex h-8 items-center gap-1 rounded-md pl-2 pr-1 text-sm [&>svg]:size-3.5",
-          defaultClassNames.caption_label
+          defaultClassNames.caption_label,
         ),
         table: "w-full border-collapse",
         weekdays: cn("flex", defaultClassNames.weekdays),
         weekday: cn(
-          "text-amber-700 flex-1 select-none py-4 text-sm font-medium",
-          defaultClassNames.weekday
+          "text-muted-foreground flex-1 select-none py-4 text-sm font-medium",
+          defaultClassNames.weekday,
         ),
         week: cn("mt-2 flex w-full", defaultClassNames.week),
         week_number_header: cn(
           "w-[--cell-size] select-none",
-          defaultClassNames.week_number_header
+          defaultClassNames.week_number_header,
         ),
         week_number: cn(
           "text-muted-foreground select-none text-[0.8rem]",
-          defaultClassNames.week_number
+          defaultClassNames.week_number,
         ),
         day: cn(
           "group/day relative aspect-square h-full w-full select-none p-1 text-center font-medium",
-          defaultClassNames.day
+          defaultClassNames.day,
         ),
         range_start: cn(
           "bg-accent rounded-l-md",
-          defaultClassNames.range_start
+          defaultClassNames.range_start,
         ),
         range_middle: cn("rounded-none", defaultClassNames.range_middle),
         range_end: cn("bg-accent rounded-r-md", defaultClassNames.range_end),
         today: cn(
-          "bg-amber-200 text-amber-750 rounded-xl font-bold",
-          defaultClassNames.today
+          "rounded-xl bg-secondary text-secondary-foreground font-bold",
+          defaultClassNames.today,
         ),
-        outside: cn("text-amber-500 opacity-60", defaultClassNames.outside),
-        disabled: cn("text-amber-500 opacity-60", defaultClassNames.outside),
+        outside: cn(
+          "text-muted-foreground opacity-60",
+          defaultClassNames.outside,
+        ),
+        disabled: cn(
+          "text-muted-foreground opacity-40",
+          defaultClassNames.outside,
+        ),
         hidden: cn("invisible", defaultClassNames.hidden),
         ...classNames,
       }}
@@ -193,13 +199,13 @@ function CalendarDayButton({
       data-range-end={modifiers.range_end}
       data-range-middle={modifiers.range_middle}
       className={cn(
-        "text-amber-900 hover:bg-amber-200/50 hover:text-amber-950 rounded-xl transition-all",
-        "data-[selected-single=true]:bg-amber-600 data-[selected-single=true]:text-amber-50",
-        "data-[range-start=true]:bg-amber-600 data-[range-start=true]:text-amber-50",
-        "data-[range-middle=true]:bg-amber-500 data-[range-middle=true]:text-amber-50",
-        "data-[range-end=true]:bg-amber-600 data-[range-end=true]:text-amber-50",
+        "rounded-xl text-foreground transition-all hover:bg-accent hover:text-accent-foreground",
+        "data-[selected-single=true]:bg-primary data-[selected-single=true]:text-primary-foreground",
+        "data-[range-start=true]:bg-primary data-[range-start=true]:text-primary-foreground",
+        "data-[range-middle=true]:bg-secondary data-[range-middle=true]:text-secondary-foreground",
+        "data-[range-end=true]:bg-primary data-[range-end=true]:text-primary-foreground",
         "flex aspect-square h-auto w-full min-w-[--cell-size] flex-col gap-1 font-semibold leading-none",
-        className
+        className,
       )}
       {...props}
     />

@@ -1,9 +1,34 @@
 "use client";
+
 import { useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import {
+  Camera,
+  Cake,
+  LogOut,
+  Ruler,
+  Scale,
+  ShieldAlert,
+  Sparkles,
+  Target,
+  UserRound,
+} from "lucide-react";
+import * as motion from "motion/react-client";
 import { GiPotato } from "react-icons/gi";
-import { LogOut } from "lucide-react";
+
+import { useUser } from "../../context/UserContext";
+import { user } from "../../types/user";
+import { allergy } from "@/app/types/allergy";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -11,22 +36,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { user } from "../../types/user";
-import * as motion from "motion/react-client";
+
 import { logout, updateUserDetails, uploadAvatar } from "./actions";
-import Image from "next/image";
-import { useUser } from "../../context/UserContext";
-import { allergy } from "@/app/types/allergy";
 
 export default function ProfileClient() {
   const { user, setUser } = useUser();
 
-  //draft implementation
   const [draft, setDraft] = useState<Partial<user>>({});
-  const getInputValue = (key: keyof Omit<user, "allergies">) => {
-    const value = draft[key] ?? user?.[key];
-    return value ?? "";
-  };
   const [tempPicture, setTempPicture] = useState<{
     tempFile: File | null;
     previewUrl: string | null;
@@ -35,17 +51,27 @@ export default function ProfileClient() {
     previewUrl: null,
   });
   const [unit, setUnit] = useState<"kg" | "lbs">("kg");
-  const hasGoal = getInputValue("weight") !== getInputValue("weight_goal");
-  const [allergy, setAllergy] = useState<string>("");
-  const [addedAllergy, setAddedAllergies] = useState<allergy[]>([]);
+  const [allergyInput, setAllergyInput] = useState("");
+  const [addedAllergies, setAddedAllergies] = useState<allergy[]>([]);
   const [removedIds, setRemovedIds] = useState<string[]>([]);
   const [isUpdating, setIsUpdating] = useState(false);
-  console.log("User allergies:", user?.allergies);
+
+  const getInputValue = (key: keyof Omit<user, "allergies">) => {
+    if (Object.prototype.hasOwnProperty.call(draft, key)) {
+      return draft[key] ?? "";
+    }
+
+    return user?.[key] ?? "";
+  };
+
   const currentAllergies = useMemo(() => {
     const saved =
-      user?.allergies.filter((a) => !removedIds.includes(a.allergy_id)) || [];
-    return [...saved, ...addedAllergy];
-  }, [user, removedIds, addedAllergy]);
+      user?.allergies.filter((item) => !removedIds.includes(item.allergy_id)) ||
+      [];
+    return [...saved, ...addedAllergies];
+  }, [addedAllergies, removedIds, user]);
+
+  const hasGoal = getInputValue("weight") !== getInputValue("weight_goal");
 
   const handleSaveDraft = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type } = e.target;
@@ -55,42 +81,47 @@ export default function ProfileClient() {
     }));
   };
 
-  const kgToLbs = (unit: "kg" | "lbs") => {
-    const weight = Number(getInputValue("weight")) ?? null;
-    if (unit === "lbs" && weight) {
-      const weightInLbs = Math.round(weight * 2.204);
-      setDraft((p) => ({ ...p, weight: weightInLbs }));
-      setUnit("lbs");
-    } else if (unit === "kg" && weight) {
-      const weightInKg = Math.round(weight / 2.204);
-      setDraft((p) => ({ ...p, weight: weightInKg }));
-      setUnit("kg");
+  const handleWeightChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = e.target;
+    setDraft((prev) => ({
+      ...prev,
+      weight: value === "" ? null : Number(value),
+    }));
+  };
+
+  const handleUnitChange = (nextUnit: "kg" | "lbs") => {
+    const weight = Number(getInputValue("weight"));
+    if (nextUnit === "lbs" && weight) {
+      setDraft((prev) => ({ ...prev, weight: Math.round(weight * 2.204) }));
+    } else if (nextUnit === "kg" && weight) {
+      setDraft((prev) => ({ ...prev, weight: Math.round(weight / 2.204) }));
     }
+
+    setUnit(nextUnit);
   };
 
   const handleSaveToDb = async () => {
     setIsUpdating(true);
     try {
-      let current_avatar = user?.avatar_url || "";
+      let currentAvatar = user?.avatar_url || "";
       if (tempPicture.tempFile) {
         const formData = new FormData();
         formData.append("avatar", tempPicture.tempFile);
         const res = await uploadAvatar(formData);
         if (res.success) {
-          current_avatar = res.url;
+          currentAvatar = res.url;
         }
       }
-
-      const isLbs = unit === "lbs";
 
       const payload = {
         ...user,
         ...draft,
-        avatar_url: current_avatar,
-        weight: isLbs
-          ? Math.round(Number(getInputValue("weight")) / 2.204)
-          : getInputValue("weight"),
-        newAllergies: addedAllergy.map((a) => a.name.toLowerCase()),
+        avatar_url: currentAvatar,
+        weight:
+          unit === "lbs"
+            ? Math.round(Number(getInputValue("weight")) / 2.204)
+            : getInputValue("weight"),
+        newAllergies: addedAllergies.map((item) => item.name.toLowerCase()),
         toDelete: removedIds,
       };
 
@@ -105,100 +136,238 @@ export default function ProfileClient() {
         setRemovedIds([]);
         setTempPicture({ tempFile: null, previewUrl: null });
         setUnit("kg");
-        console.log("Profile update successful!!");
       }
-      console.log("end of handle fucntion!!!");
     } catch (error) {
       console.log("Error: ", error);
+    } finally {
+      setIsUpdating(false);
     }
   };
 
-  const capitalize = (allergy: string): string => {
-    return allergy.charAt(0).toUpperCase() + allergy.slice(1).toLowerCase();
-  };
+  const capitalize = (value: string) =>
+    value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+
+  const usernameValue = String(getInputValue("username") || "");
+  const weightValue = getInputValue("weight");
+  const heightValue = getInputValue("height");
+  const ageValue = getInputValue("age");
+  const goalValue = getInputValue("weight_goal");
+  const rawGenderValue = getInputValue("gender");
+  const genderValue =
+    typeof rawGenderValue === "string" && rawGenderValue !== ""
+      ? rawGenderValue
+      : undefined;
+  const profileName = usernameValue || "Potato User";
+  const profileSubtitle =
+    currentAllergies.length > 0
+      ? `${currentAllergies.length} dietary restriction${
+          currentAllergies.length > 1 ? "s" : ""
+        } tracked`
+      : "Personalize your food guidance";
+  const profileStats = [
+    {
+      icon: Scale,
+      label: "Weight",
+      value:
+        weightValue === "" ? "Not set" : `${weightValue} ${unit.toUpperCase()}`,
+    },
+    {
+      icon: Ruler,
+      label: "Height",
+      value: heightValue === "" ? "Not set" : `${heightValue} cm`,
+    },
+    {
+      icon: Cake,
+      label: "Age",
+      value: ageValue === "" ? "Not set" : `${ageValue}`,
+    },
+    {
+      icon: Target,
+      label: "Goal",
+      value: hasGoal && goalValue !== "" ? `${goalValue} kg` : "Maintain",
+    },
+  ];
+
+  const inputClassName =
+    "h-11 rounded-xl border-border bg-background px-4 shadow-sm shadow-black/5 transition focus-visible:ring-2 focus-visible:ring-ring";
+  const labelClassName =
+    "text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground";
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center p-6 bg-gradient-to-br from-amber-50 to-orange-100">
-      <div className="w-full max-w-5xl bg-white/80 backdrop-blur-xl shadow-2xl rounded-3xl overflow-hidden border border-white">
-        <div className="flex flex-col md:flex-row">
-          <div className="w-full md:w-2/5 p-10 bg-amber-900 text-amber-50 flex flex-col items-center">
-            <div className="relative group">
-              <motion.div
-                whileHover={{ rotate: 7, scale: 1.1 }}
-                whileTap={{
-                  scale: 0.9,
-                }}
-                className="w-32 h-32 rounded-3xl bg-amber-700 flex items-center justify-center border-4 border-amber-600 shadow-xl"
-              >
-                {tempPicture.previewUrl || user?.avatar_url ? (
-                  <Image
-                    src={tempPicture.previewUrl || (user?.avatar_url as string)}
-                    fill
-                    className="object-cover p-2 border-2 border-amber-600 bg-amber-600 rounded-3xl"
-                    alt="Profile Picture"
-                  />
-                ) : (
-                  <div className="flex items-center justify-center w-full h-full text-6xl text-amber-200">
-                    <GiPotato />
-                  </div>
-                )}
-                <input
-                  type="file"
-                  id="avatar"
-                  hidden
-                  accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file)
-                      setTempPicture({
-                        tempFile: file,
-                        previewUrl: URL.createObjectURL(file),
-                      });
-                  }}
-                />
+    <div className="relative min-h-screen overflow-hidden bg-background px-4 py-5 md:px-6">
+      <div className="absolute inset-x-0 top-0 h-56 bg-primary/10 blur-3xl" />
 
-                <label
-                  htmlFor="avatar"
-                  className="absolute inset-0 cursor-pointer flex items-center justify-center rounded-3xl"
-                ></label>
+      <Card className="relative mx-auto w-full max-w-6xl overflow-hidden border-border/70 bg-card/95 shadow-[0_24px_70px_-38px_rgba(0,0,0,0.18)] backdrop-blur-sm">
+        <CardHeader className="gap-5 border-b border-border/80 bg-muted/35 p-5 md:p-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+              <motion.div
+                whileHover={{ y: -2, scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="shrink-0"
+              >
+                <Avatar className="h-24 w-24 rounded-[1.5rem] border-4 border-background bg-secondary shadow-lg shadow-black/5">
+                  {tempPicture.previewUrl || user?.avatar_url ? (
+                    <AvatarImage
+                      src={
+                        tempPicture.previewUrl || user?.avatar_url || undefined
+                      }
+                      alt={`${profileName} profile picture`}
+                      className="object-cover"
+                    />
+                  ) : null}
+                  <AvatarFallback className="rounded-[1.5rem] bg-secondary text-5xl text-primary">
+                    <GiPotato />
+                  </AvatarFallback>
+                </Avatar>
               </motion.div>
+
+              <input
+                type="file"
+                id="avatar"
+                hidden
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setTempPicture({
+                      tempFile: file,
+                      previewUrl: URL.createObjectURL(file),
+                    });
+                  }
+                }}
+              />
+
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-primary">
+                  <div className="rounded-full border border-border bg-secondary px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-secondary-foreground">
+                    Quick Profile
+                  </div>
+                  <Sparkles className="h-4 w-4" />
+                </div>
+                <div>
+                  <CardTitle className="text-2xl text-card-foreground md:text-3xl">
+                    {profileName}
+                  </CardTitle>
+                  <CardDescription className="mt-1 max-w-md text-sm text-muted-foreground">
+                    {profileSubtitle}
+                  </CardDescription>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="h-9 rounded-full border-border bg-background text-foreground hover:bg-accent hover:text-accent-foreground"
+                  >
+                    <label htmlFor="avatar" className="cursor-pointer">
+                      <Camera className="mr-2 h-4 w-4" />
+                      Photo
+                    </label>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => logout()}
+                    className="h-9 rounded-full text-foreground hover:bg-accent hover:text-accent-foreground"
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Sign Out
+                  </Button>
+                </div>
+              </div>
             </div>
 
-            <div className="mt-8 w-full space-y-6">
-              <div className="space-y-1">
-                <label className="text-xs font-bold uppercase tracking-widest text-amber-400">
-                  DisplayName
-                </label>
-                <Input
-                  className="bg-amber-800/50 border-none text-white placeholder:text-amber-600 h-12 text-lg focus-visible:ring-amber-600"
-                  placeholder="Enter Username"
-                  name="username"
-                  value={getInputValue("username") || ""}
-                  onChange={handleSaveDraft}
-                />
-              </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
+              {profileStats.map(({ icon: Icon, label, value }) => (
+                <div
+                  key={label}
+                  className="min-w-[118px] rounded-2xl border border-border bg-background/80 px-4 py-3 shadow-sm shadow-black/5"
+                >
+                  <div className="mb-2 flex items-center gap-2 text-primary">
+                    <Icon className="h-4 w-4" />
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.18em]">
+                      {label}
+                    </span>
+                  </div>
+                  <p className="text-sm font-semibold text-card-foreground">
+                    {value}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardHeader>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold uppercase tracking-widest text-amber-400">
-                    Weight
-                  </label>
-                  <div className="flex bg-amber-800/50 rounded-md overflow-hidden border-none">
+        <CardContent className="grid gap-4 p-5 md:p-6 lg:grid-cols-[1.55fr,1fr]">
+          <div className="space-y-4">
+            <Card className="border-border bg-muted/35 shadow-none">
+              <CardHeader className="flex flex-row items-center justify-between gap-3 pb-3">
+                <div>
+                  <CardTitle className="text-lg text-card-foreground">
+                    Personal Details
+                  </CardTitle>
+                  <CardDescription className="text-muted-foreground">
+                    Edit the essentials in one place.
+                  </CardDescription>
+                </div>
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-background text-primary shadow-sm">
+                  <UserRound className="h-5 w-5" />
+                </div>
+              </CardHeader>
+              <CardContent className="grid gap-4 p-6 pt-0 md:grid-cols-2 xl:grid-cols-4">
+                <div className="space-y-2 md:col-span-2 xl:col-span-2">
+                  <label className={labelClassName}>Display Name</label>
+                  <Input
+                    className={inputClassName}
+                    placeholder="Enter username"
+                    name="username"
+                    value={usernameValue}
+                    onChange={handleSaveDraft}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className={labelClassName}>Gender</label>
+                  <Select
+                    value={genderValue}
+                    onValueChange={(value) =>
+                      setDraft((prev) => ({ ...prev, gender: value }))
+                    }
+                  >
+                    <SelectTrigger className="h-11 rounded-xl border-border bg-background px-4 shadow-sm shadow-black/5 focus:ring-ring">
+                      <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="male">Male</SelectItem>
+                      <SelectItem value="female">Female</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <label className={labelClassName}>Age</label>
+                  <Input
+                    type="number"
+                    name="age"
+                    value={ageValue}
+                    onChange={handleSaveDraft}
+                    className={inputClassName}
+                    placeholder="23"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className={labelClassName}>Weight</label>
+                  <div className="flex gap-2">
                     <Input
                       type="number"
                       name="weight"
-                      className="bg-transparent border-none text-amber focus-visible:ring-1 focus-visible:ring-amber-600"
+                      className={`${inputClassName} flex-1`}
                       placeholder="68"
-                      value={getInputValue("weight")}
-                      onChange={(e) =>
-                        setDraft((p) => ({
-                          ...p,
-                          weight: Number(e.target.value),
-                        }))
-                      }
+                      value={weightValue}
+                      onChange={handleWeightChange}
                     />
-                    <Select value={unit} onValueChange={kgToLbs}>
-                      <SelectTrigger className="w-20 bg-transparent border-none text-xs font-bold tracking-wide text-amber-500">
+                    <Select value={unit} onValueChange={handleUnitChange}>
+                      <SelectTrigger className="h-11 w-24 rounded-xl border-border bg-background px-3 font-semibold uppercase tracking-wide shadow-sm shadow-black/5 focus:ring-ring">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -208,84 +377,145 @@ export default function ProfileClient() {
                     </Select>
                   </div>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold uppercase tracking-widest text-amber-400">
-                    Height
-                  </label>
-                  <div className="flex items-center bg-amber-800/50 rounded-md pr-3">
+
+                <div className="space-y-2">
+                  <label className={labelClassName}>Height</label>
+                  <div className="relative">
                     <Input
                       type="number"
                       name="height"
-                      value={getInputValue("height")}
-                      className="bg-transparent border-none text-white focus-visible:ring-1 focus-visible:ring-amber-600"
+                      value={heightValue}
+                      className={`${inputClassName} pr-12`}
                       placeholder="175"
                       onChange={handleSaveDraft}
                     />
-                    <span className="text-xs font-bold pl-1 text-amber-500">
-                      CM
+                    <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      cm
                     </span>
                   </div>
                 </div>
-              </div>
+              </CardContent>
+            </Card>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold uppercase tracking-widest text-amber-400">
-                    Gender
-                  </label>
-                  <Select
-                    value={String(getInputValue("gender"))}
-                    onValueChange={(value) =>
-                      setDraft((prev) => ({ ...prev, gender: value }))
-                    }
-                  >
-                    <SelectTrigger className="w-39 bg-amber-700 border-none text-xs focus-visible:ring-1 focus-visible:ring-amber-600">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="male">Male</SelectItem>
-                      <SelectItem value="female">Female</SelectItem>
-                    </SelectContent>
-                  </Select>
+            <Card className="border-border bg-card shadow-none">
+              <CardHeader className="flex flex-row items-center justify-between gap-3 pb-3">
+                <div>
+                  <CardTitle className="text-lg text-card-foreground">
+                    Dietary Constraints
+                  </CardTitle>
+                  <CardDescription className="text-muted-foreground">
+                    Add and remove restrictions quickly.
+                  </CardDescription>
                 </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold uppercase tracking-widest text-amber-400">
-                    Age
-                  </label>
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-accent text-accent-foreground shadow-sm">
+                  <ShieldAlert className="h-5 w-5" />
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4 p-6 pt-0">
+                <div className="flex flex-col gap-2 sm:flex-row">
                   <Input
-                    type="number"
-                    name="age"
-                    value={getInputValue("age")}
-                    onChange={handleSaveDraft}
-                    className="bg-amber-800/50 border-none text-white focus-visible:ring-1 focus-visible:ring-amber-600"
+                    placeholder="Ex: peanuts, shellfish..."
+                    className={`${inputClassName} flex-1`}
+                    value={allergyInput}
+                    onChange={(e) => setAllergyInput(e.target.value)}
                   />
+                  <Button
+                    variant="default"
+                    onClick={() => {
+                      if (allergyInput) {
+                        setAddedAllergies((prev) => [
+                          ...prev,
+                          {
+                            allergy_id: `temp-${Date.now()}`,
+                            name: allergyInput,
+                          },
+                        ]);
+                        setAllergyInput("");
+                      }
+                    }}
+                    className="h-11 rounded-xl px-5"
+                  >
+                    Add
+                  </Button>
                 </div>
-              </div>
-            </div>
+
+                <div className="min-h-[92px] rounded-2xl border border-dashed border-border bg-muted/30 p-3">
+                  {currentAllergies.length === 0 ? (
+                    <div className="flex min-h-[64px] items-center justify-center rounded-xl bg-background/75 px-4 text-center text-sm text-muted-foreground">
+                      No restrictions added yet.
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {currentAllergies.map((item) => (
+                        <div
+                          key={item.allergy_id}
+                          className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground shadow-sm"
+                        >
+                          <span>{capitalize(item.name)}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-5 w-5 rounded-full text-muted-foreground hover:bg-accent hover:text-destructive"
+                            onClick={() => {
+                              if (item.allergy_id.startsWith("temp-")) {
+                                setAddedAllergies((prev) =>
+                                  prev.filter(
+                                    (next) =>
+                                      next.allergy_id !== item.allergy_id,
+                                  ),
+                                );
+                              } else {
+                                setRemovedIds((prev) => [
+                                  ...prev,
+                                  item.allergy_id,
+                                ]);
+                              }
+                            }}
+                          >
+                            x
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
-          <div className="flex-1 p-10 flex flex-col justify-between space-y-10">
-            <section className="space-y-4">
-              <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                <span className="w-2 h-8 bg-amber-500 rounded-full"></span>
-                Fitness Objective
-              </h3>
-              <div className="flex flex-wrap items-end gap-4 p-6 bg-gray-50 rounded-2xl border border-gray-100">
-                <div className="flex-1 min-w-[200px]">
+          <div className="space-y-4">
+            <Card className="border-border bg-muted/35 shadow-none">
+              <CardHeader className="flex flex-row items-center justify-between gap-3 pb-3">
+                <div>
+                  <CardTitle className="text-lg text-card-foreground">
+                    Fitness Objective
+                  </CardTitle>
+                  <CardDescription className="text-muted-foreground">
+                    Keep or change your target weight.
+                  </CardDescription>
+                </div>
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-background text-primary shadow-sm">
+                  <Target className="h-5 w-5" />
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4 p-6 pt-0">
+                <div className="space-y-2">
+                  <label className={labelClassName}>Goal Mode</label>
                   <Select
                     value={hasGoal ? "goal" : "maintain"}
-                    onValueChange={(v) =>
+                    onValueChange={(value) =>
                       setDraft((prev) => ({
                         ...prev,
                         weight_goal:
-                          v === "maintain"
+                          value === "maintain"
                             ? Number(getInputValue("weight"))
                             : 0,
                       }))
                     }
                   >
-                    <SelectTrigger className="h-12 border-2 focus:ring-amber-500">
-                      <SelectValue placeholder="Select intent" />
+                    <SelectTrigger className="h-11 rounded-xl border-border bg-background px-4 shadow-sm shadow-black/5 focus:ring-ring">
+                      <SelectValue placeholder="Select goal" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="maintain">
@@ -297,144 +527,61 @@ export default function ProfileClient() {
                 </div>
 
                 {hasGoal && (
-                  <div className="flex items-center gap-3">
-                    <Input
-                      type="number"
-                      name="weight_goal"
-                      className="w-24 h-12 border-2 text-center text-xl font-bold"
-                      placeholder="70"
-                      onChange={handleSaveDraft}
-                      value={getInputValue("weight_goal") || ""}
-                    />
-                    <span className="font-bold text-gray-400">KG</span>
+                  <div className="space-y-2">
+                    <label className={labelClassName}>Target Weight</label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        name="weight_goal"
+                        className={`${inputClassName} max-w-32 text-center font-semibold`}
+                        placeholder="70"
+                        onChange={handleSaveDraft}
+                        value={goalValue || ""}
+                      />
+                      <span className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                        kg
+                      </span>
+                    </div>
                   </div>
                 )}
-              </div>
-            </section>
 
-            <section className="space-y-4">
-              <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                <span className="w-2 h-8 bg-orange-500 rounded-full"></span>
-                Dietary Constraints
-              </h3>
-              <div className="space-y-4">
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Ex: Peanuts, Shellfish..."
-                    className="h-12 border-2 focus-visible:ring-orange-500"
-                    value={allergy}
-                    onChange={(e) => setAllergy(e.target.value)}
-                  />
-                  <Button
-                    onClick={() => {
-                      if (allergy) {
-                        setAddedAllergies((prev) => [
-                          ...prev,
-                          { allergy_id: `temp-${Date.now()}`, name: allergy },
-                        ]);
-                        setAllergy("");
-                      }
-                    }}
-                    className="h-12 px-8 bg-amber-600 hover:bg-amber-700 text-white shadow-lg shadow-amber-600 hover:shadow-amber-700 cursor-pointer"
-                  >
-                    Add
-                  </Button>
+                <div className="rounded-2xl border border-border bg-background/75 p-4 text-sm text-muted-foreground">
+                  {hasGoal
+                    ? "Your planner will use the target weight in future recommendations."
+                    : "Your planner will keep meals aligned with maintaining your current weight."}
                 </div>
+              </CardContent>
+            </Card>
 
-                {/* <div className="w-full h-40 p-6 bg-orange-50/50 border-2 border-dashed border-orange-200 rounded-2xl overflow-y-auto">
-                  <div className="flex flex-wrap gap-3">
-                    {currentAllergies.length === 0 &&
-                      currentAllergies.map((a) => (
-                        <div
-                        key={item.id}
-                        className="group flex items-center gap-2 px-4 py-2 bg-white border border-orange-200 rounded-xl text-sm font-semibold text-orange-800 shadow-sm transition-all hover:border-orange-400"
-                      >
-                        {capitalize(item.name)}
-                        <button
-                          onClick={() => handleDeleteFromDb(item.id)}
-                          className="text-orange-300 hover:text-red-500 cursor-pointer transition-colors"
-                        >
-                          x
-                        </button>
-                      </div>
-                      )) === 0 && (
-                        <p className="text-orange-300 italic text-sm">
-                          No restrictions listed. Eat safe!
-                        </p>
-                      )}
-                    {savedAllergies.map((item) => (
-                      
-                    ))}
-
-                    {addedAllergy.map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex items-center gap-2 px-4 py-2 bg-orange-200 rounded-xl text-sm font-bold text-orange-900 animate-in fade-in zoom-in duration-300"
-                      >
-                        {item.name}
-                        <button
-                          onClick={() =>
-                            setAddedAllergies((prev) =>
-                              prev.filter((a) => a.id !== item.id),
-                            )
-                          }
-                          className="hover:text-red-600 cursor-pointer"
-                        >
-                          x
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div> */}
-                <div className="flex flex-wrap gap-2 p-4 bg-orange-50/30 rounded-2xl min-h-[100px] border-2 border-dashed border-orange-100">
-                  {currentAllergies.map((a) => (
-                    <span
-                      key={a.allergy_id}
-                      className="group flex items-center gap-2 px-4 py-2 bg-white border border-orange-200 rounded-xl text-sm font-semibold text-orange-800 shadow-sm transition-all hover:border-orange-400"
-                    >
-                      {capitalize(a.name)}
-                      <Button
-                        variant="ghost"
-                        className="hover:text-red-600 cursor-pointer w-5 h-5"
-                        onClick={() => {
-                          if (a.allergy_id.startsWith("temp-"))
-                            setAddedAllergies((p) =>
-                              p.filter((na) => na.allergy_id !== a.allergy_id),
-                            );
-                          else setRemovedIds((p) => [...p, a.allergy_id]);
-                        }}
-                      >
-                        x
-                      </Button>
-                    </span>
-                  ))}
+            <Card className="border-border bg-card shadow-none">
+              <CardContent className="space-y-3 p-5">
+                <div>
+                  <p className="text-base font-semibold text-card-foreground">
+                    Save changes
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Keep your profile updated without extra scrolling.
+                  </p>
                 </div>
-              </div>
-            </section>
-
-            <div className="flex items-center justify-between pt-6 border-t border-gray-100">
-              <Button
-                variant="ghost"
-                onClick={() => logout()}
-                className="text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all px-6"
-              >
-                <LogOut size={18} className="mr-2" />
-                Sign Out
-              </Button>
-              <motion.button
-                whileHover={{ scale: 1.1, transition: { duration: 0.1 } }}
-                whileTap={{
-                  scale: 0.8,
-                }}
-                onClick={handleSaveToDb}
-                className="px-10 h-14 bg-amber-900 text-white text-lg font-bold rounded-2xl shadow-lg shadow-amber-700 hover:bg-amber-800 hover:-translate-y-1 transition-all cursor-pointer"
-              >
-                Update Profile
-              </motion.button>
-            </div>
+                <motion.button
+                  whileHover={{ scale: 1.01, transition: { duration: 0.12 } }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleSaveToDb}
+                  disabled={isUpdating}
+                  className="inline-flex h-12 items-center justify-center rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-lg shadow-black/10 transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {isUpdating ? "Saving..." : "Update Profile"}
+                </motion.button>
+              </CardContent>
+            </Card>
           </div>
-        </div>
-      </div>
+        </CardContent>
+
+        <CardFooter className="border-t border-border/80 bg-muted/35 px-5 py-4 text-sm text-muted-foreground md:px-6">
+          Everything important is grouped into one shorter workspace for faster
+          edits.
+        </CardFooter>
+      </Card>
     </div>
   );
 }

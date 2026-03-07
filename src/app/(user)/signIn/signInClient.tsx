@@ -58,19 +58,24 @@ export default function SignInPage() {
     setToggleVerify(false);
   };
 
+  const fieldClassName =
+    "w-full rounded-xl border border-input bg-background px-4 py-3 text-foreground outline-none transition-all placeholder:text-muted-foreground focus:border-ring";
+  const labelClassName = "ml-1 block text-sm font-semibold text-foreground";
+  const otpSlotClassName = "border-border bg-background text-foreground";
+
   return (
-    <div className="flex w-full min-h-screen items-center justify-center bg-yellow-50 font-sans p-6">
+    <div className="flex min-h-screen w-full items-center justify-center bg-background p-6 font-sans text-foreground">
       <div className="grid grid-cols-1 lg:grid-cols-2 w-full max-w-7xl gap-12 lg:gap-24 items-center">
         <div className="flex flex-col gap-y-8 text-center lg:text-left">
-          <h1 className="text-5xl font-extrabold text-gray-900 md:text-6xl lg:text-7xl leading-tight">
+          <h1 className="text-5xl font-extrabold leading-tight text-foreground md:text-6xl lg:text-7xl">
             Stop wondering{" "}
-            <span className="text-amber-600 block lg:inline">
+            <span className="block text-primary lg:inline">
               what's for dinner.
             </span>
           </h1>
 
-          <p className="text-lg text-gray-600 md:text-xl max-w-2xl mx-auto lg:mx-0">
-            Welcome to <span className="text-amber-600 font-bold">Potato!</span>{" "}
+          <p className="mx-auto max-w-2xl text-lg text-muted-foreground md:text-xl lg:mx-0">
+            Welcome to <span className="font-bold text-primary">Potato!</span>{" "}
             Just show me what's in your fridge, and I'll give you a delicious,
             easy-to-make recipe in seconds. Your meal planning is about to
             change forever.
@@ -78,9 +83,9 @@ export default function SignInPage() {
         </div>
 
         <div className="flex justify-center lg:justify-end">
-          <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-3xl shadow-xl border border-orange-100">
+          <div className="w-full max-w-md space-y-8 rounded-3xl border border-border bg-card p-8 shadow-xl shadow-black/5">
             <div className="text-center">
-              <h1 className="text-4xl text-amber-600 tracking-widest font-bold">
+              <h1 className="text-4xl font-bold tracking-widest text-primary">
                 Potato
               </h1>
             </div>
@@ -89,7 +94,7 @@ export default function SignInPage() {
               <div className="space-y-2">
                 <label
                   htmlFor="email"
-                  className="block text-sm font-semibold text-gray-700 ml-1"
+                  className={labelClassName}
                 >
                   Email Address
                 </label>
@@ -98,7 +103,7 @@ export default function SignInPage() {
                   name="email"
                   type="email"
                   required
-                  className="w-full px-4 py-3 bg-orange-50 border-2 border-transparent rounded-xl focus:border-amber-500 text-gray-800 placeholder-gray-400 transition-all outline-none"
+                  className={fieldClassName}
                   placeholder="potato@kitchen.com"
                 />
               </div>
@@ -106,7 +111,7 @@ export default function SignInPage() {
               <div className="space-y-2">
                 <label
                   htmlFor="password"
-                  className="block text-sm font-semibold text-gray-700 ml-1"
+                  className={labelClassName}
                 >
                   Password
                 </label>
@@ -115,14 +120,14 @@ export default function SignInPage() {
                   name="password"
                   type="password"
                   required
-                  className="w-full px-4 py-3 bg-orange-50 border-2 border-transparent rounded-xl focus:border-amber-500 text-gray-800 placeholder-gray-400 transition-all outline-none"
+                  className={fieldClassName}
                   placeholder="shhh..."
                 />
               </div>
 
               {isSignUp && (
                 <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                  <label className="block text-sm font-semibold text-gray-700 ml-1">
+                  <label className={labelClassName}>
                     Confirm Password
                   </label>
                   <input
@@ -131,7 +136,7 @@ export default function SignInPage() {
                     onChange={(e) => setCPassword(e.target.value)}
                     type="password"
                     required
-                    className="w-full px-4 py-3 bg-orange-50 border-2 border-transparent rounded-xl focus:border-amber-500 text-gray-800 placeholder-gray-400 transition-all outline-none"
+                    className={fieldClassName}
                     placeholder="••••••••"
                   />
                 </div>
@@ -141,17 +146,17 @@ export default function SignInPage() {
                 <div className="space-y-4">
                   <Button
                     formAction={login}
-                    className="w-full py-6 font-bold text-white bg-amber-600 rounded-xl hover:bg-amber-700 shadow-lg shadow-amber-200 transition-all active:scale-95"
+                    className="w-full rounded-xl py-6 font-bold shadow-lg shadow-black/5 transition-all active:scale-95"
                   >
                     Log In
                   </Button>
 
                   <div className="relative">
                     <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t border-gray-100"></span>
+                      <span className="w-full border-t border-border"></span>
                     </div>
                     <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-white px-2 text-gray-400 font-bold">
+                      <span className="bg-card px-2 font-bold text-muted-foreground">
                         Or
                       </span>
                     </div>
@@ -159,12 +164,12 @@ export default function SignInPage() {
 
                   <GoogleSignIn />
 
-                  <p className="text-center text-sm text-gray-500">
+                  <p className="text-center text-sm text-muted-foreground">
                     Don't have an account?{" "}
                     <button
                       type="button"
                       onClick={() => setIsSignUp(true)}
-                      className="text-amber-600 font-bold hover:underline cursor-pointer"
+                      className="cursor-pointer font-bold text-primary hover:underline"
                     >
                       Sign Up
                     </button>
@@ -175,17 +180,17 @@ export default function SignInPage() {
                   <Button
                     type="button"
                     onClick={handleSignUp}
-                    className="w-full py-6 font-bold text-white bg-amber-600 rounded-xl hover:bg-amber-700 shadow-lg shadow-amber-200 transition-all active:scale-95"
+                    className="w-full rounded-xl py-6 font-bold shadow-lg shadow-black/5 transition-all active:scale-95"
                   >
                     Create New Account
                   </Button>
 
-                  <p className="text-center text-sm text-gray-500">
+                  <p className="text-center text-sm text-muted-foreground">
                     Already have an account?{" "}
                     <button
                       type="button"
                       onClick={() => setIsSignUp(false)}
-                      className="text-amber-600 font-bold hover:underline cursor-pointer"
+                      className="cursor-pointer font-bold text-primary hover:underline"
                     >
                       Log In
                     </button>
@@ -194,12 +199,12 @@ export default function SignInPage() {
               )}
 
               {toggleVerify && (
-                <div className="mt-8 p-6 bg-orange-50 rounded-2xl border border-orange-200 animate-in fade-in zoom-in duration-300">
+                <div className="mt-8 animate-in zoom-in rounded-2xl border border-border bg-muted/35 p-6 duration-300 fade-in">
                   <div className="text-center mb-6">
-                    <h3 className="text-lg font-bold text-gray-800">
+                    <h3 className="text-lg font-bold text-card-foreground">
                       Verify Email
                     </h3>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-muted-foreground">
                       Enter the 6-digit code sent to your inbox
                     </p>
                   </div>
@@ -212,33 +217,15 @@ export default function SignInPage() {
                       className="gap-2"
                     >
                       <InputOTPGroup>
-                        <InputOTPSlot
-                          index={0}
-                          className="bg-white border-orange-200"
-                        />
-                        <InputOTPSlot
-                          index={1}
-                          className="bg-white border-orange-200"
-                        />
-                        <InputOTPSlot
-                          index={2}
-                          className="bg-white border-orange-200"
-                        />
+                        <InputOTPSlot index={0} className={otpSlotClassName} />
+                        <InputOTPSlot index={1} className={otpSlotClassName} />
+                        <InputOTPSlot index={2} className={otpSlotClassName} />
                       </InputOTPGroup>
-                      <InputOTPSeparator className="text-orange-300" />
+                      <InputOTPSeparator className="text-muted-foreground/60" />
                       <InputOTPGroup>
-                        <InputOTPSlot
-                          index={3}
-                          className="bg-white border-orange-200"
-                        />
-                        <InputOTPSlot
-                          index={4}
-                          className="bg-white border-orange-200"
-                        />
-                        <InputOTPSlot
-                          index={5}
-                          className="bg-white border-orange-200"
-                        />
+                        <InputOTPSlot index={3} className={otpSlotClassName} />
+                        <InputOTPSlot index={4} className={otpSlotClassName} />
+                        <InputOTPSlot index={5} className={otpSlotClassName} />
                       </InputOTPGroup>
                     </InputOTP>
                   </div>
@@ -246,14 +233,14 @@ export default function SignInPage() {
                   <div className="space-y-3">
                     <Button
                       onClick={handleVerifyOtp}
-                      className="w-full py-3 font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-100"
+                      className="w-full rounded-xl py-3 font-bold shadow-lg shadow-black/5 transition-all"
                     >
                       Verify & Complete
                     </Button>
                     <Button
                       variant="link"
                       onClick={() => setToggleVerify(false)}
-                      className="w-full text-gray-500 text-sm"
+                      className="w-full text-sm text-muted-foreground"
                     >
                       Cancel
                     </Button>

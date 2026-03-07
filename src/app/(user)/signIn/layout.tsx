@@ -4,5 +4,5 @@ export default async function AuthLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <div className="w-full h-full bg-yellow-50">{children}</div>;
+  return <div className="h-full w-full bg-background text-foreground">{children}</div>;
 }

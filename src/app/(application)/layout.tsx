@@ -14,7 +14,19 @@ export default async function ApplicationLayout({
   const { data, error: authError } = await supabase.auth.getUser();
   const user_id = data.user?.id;
 
-  const [userResponse, fridgeResponse] = await Promise.all([
+  const fridgeEnrichedResponse = await supabase
+    .from("user_fridge")
+    .select(`fridge_id, quantity, unit, quantity_confidence, fridge( name )`)
+    .eq("user_id", user_id);
+
+  const fridgeResponse = fridgeEnrichedResponse.error
+    ? await supabase
+        .from("user_fridge")
+        .select(`fridge_id, quantity, fridge( name )`)
+        .eq("user_id", user_id)
+    : fridgeEnrichedResponse;
+
+  const [userResponse] = await Promise.all([
     supabase
       .from("users")
       .select(
@@ -22,10 +34,6 @@ export default async function ApplicationLayout({
       )
       .eq("user_id", user_id)
       .single(),
-    supabase
-      .from("user_fridge")
-      .select(`fridge_id, fridge( name )`)
-      .eq("user_id", user_id),
   ]);
 
   console.log("User response:", userResponse);
@@ -64,6 +72,21 @@ export default async function ApplicationLayout({
       name: Array.isArray(row.fridge)
         ? row.fridge[0]?.name
         : row.fridge?.name || "Unknown",
+      quantity: Number(row.quantity) || 1,
+      unit:
+        row.unit === "g" ||
+        row.unit === "kg" ||
+        row.unit === "ml" ||
+        row.unit === "l" ||
+        row.unit === "piece"
+          ? row.unit
+          : "piece",
+      quantity_confidence:
+        row.quantity_confidence === "estimated" ||
+        row.quantity_confidence === "unknown" ||
+        row.quantity_confidence === "exact"
+          ? row.quantity_confidence
+          : "exact",
     }),
   );
 

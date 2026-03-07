@@ -89,20 +89,20 @@ export default async function HomePage({
   }
 
   return (
-    <div className="flex flex-col w-full min-h-screen p-8 bg-green-50 gap-y-6">
-      <h1 className="text-3xl font-bold text-gray-800">Your Recipes</h1>
+    <div className="flex min-h-full w-full flex-col gap-y-6 bg-background p-8">
+      <h1 className="text-3xl font-bold text-foreground">Your Recipes</h1>
 
       {recipes.length === 0 ? (
-        <div className="flex flex-col items-center justify-center p-10 bg-white rounded-2xl shadow-lg gap-y-4">
-          <AlertTriangle size={48} className="text-amber-500" />
-          <h2 className="text-xl font-semibold text-gray-700">
+        <div className="flex flex-col items-center justify-center gap-y-4 rounded-2xl border border-border bg-card p-10 shadow-lg shadow-black/5">
+          <AlertTriangle size={48} className="text-primary" />
+          <h2 className="text-xl font-semibold text-card-foreground">
             No Recipes Found
           </h2>
-          <p className="text-gray-500 text-center">
+          <p className="text-center text-muted-foreground">
             Try adding more items from your{" "}
             <Link
               href="/fridge"
-              className="text-amber-600 font-medium hover:underline"
+              className="font-medium text-primary hover:underline"
             >
               Fridge
             </Link>

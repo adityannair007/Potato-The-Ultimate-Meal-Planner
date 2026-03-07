@@ -37,9 +37,12 @@ export default function ResetPasswordClient() {
     if (!res.success) alert(res.error);
   };
 
+  const otpSlotClassName =
+    "border-border bg-background text-foreground focus:border-ring";
+
   return (
-    <div className="space-y-6 p-8 bg-white rounded-3xl shadow-xl border border-orange-100 max-w-md mx-auto">
-      <h2 className="text-2xl font-bold text-gray-800">
+    <div className="mx-auto max-w-md space-y-6 rounded-3xl border border-border bg-card p-8 shadow-xl shadow-black/5">
+      <h2 className="text-2xl font-bold text-card-foreground">
         Reset Potato Password
       </h2>
 
@@ -49,46 +52,29 @@ export default function ResetPasswordClient() {
             placeholder="Enter your email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            className="border-input bg-background"
           />
-          <Button onClick={handleSendCode} className="w-full bg-amber-600">
+          <Button onClick={handleSendCode} className="w-full">
             Send Reset Code
           </Button>
         </div>
       ) : (
         <div className="space-y-4">
-          <p className="text-sm text-gray-500 text-center">
+          <p className="text-center text-sm text-muted-foreground">
             Enter the 6-digit code sent to {email}
           </p>
           <div className="flex justify-center">
             <InputOTP value={otpValue} onChange={setOtpValue} maxLength={6}>
               <InputOTPGroup>
-                <InputOTPSlot
-                  index={0}
-                  className="bg-white border-orange-200 focus:border-amber-500"
-                />
-                <InputOTPSlot
-                  index={1}
-                  className="bg-white border-orange-200 focus:border-amber-500"
-                />
-                <InputOTPSlot
-                  index={2}
-                  className="bg-white border-orange-200 focus:border-amber-500"
-                />
+                <InputOTPSlot index={0} className={otpSlotClassName} />
+                <InputOTPSlot index={1} className={otpSlotClassName} />
+                <InputOTPSlot index={2} className={otpSlotClassName} />
               </InputOTPGroup>
-              <InputOTPSeparator className="text-orange-300" />
+              <InputOTPSeparator className="text-muted-foreground/60" />
               <InputOTPGroup>
-                <InputOTPSlot
-                  index={3}
-                  className="bg-white border-orange-200 focus:border-amber-500"
-                />
-                <InputOTPSlot
-                  index={4}
-                  className="bg-white border-orange-200 focus:border-amber-500"
-                />
-                <InputOTPSlot
-                  index={5}
-                  className="bg-white border-orange-200 focus:border-amber-500"
-                />
+                <InputOTPSlot index={3} className={otpSlotClassName} />
+                <InputOTPSlot index={4} className={otpSlotClassName} />
+                <InputOTPSlot index={5} className={otpSlotClassName} />
               </InputOTPGroup>
             </InputOTP>
           </div>
@@ -97,11 +83,9 @@ export default function ResetPasswordClient() {
             placeholder="New Password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
+            className="border-input bg-background"
           />
-          <Button
-            onClick={handleUpdatePassword}
-            className="w-full bg-green-600 text-white"
-          >
+          <Button onClick={handleUpdatePassword} className="w-full">
             Update Password
           </Button>
         </div>
