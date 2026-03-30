@@ -1,18 +1,28 @@
-FROM node:20-alpine
+FROM node:20-alpine AS deps
 
 WORKDIR /app
-
-# Copy dependency files
 COPY package*.json ./
+RUN npm ci
 
-# Install dependencies
-RUN npm install
+FROM node:20-alpine AS builder
 
-# Copy the rest of the Next.js files
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+RUN npm run build -- --no-lint
 
-# Next.js defaults to port 3000
+FROM node:20-alpine AS runner
+
+WORKDIR /app
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+
+COPY package*.json ./
+RUN npm ci --omit=dev
+
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/src/app/public ./public
+COPY --from=builder /app/next.config.ts ./next.config.ts
+
 EXPOSE 3000
-
-# Run the Next.js dev server
-CMD ["npm", "run", "dev"]
+CMD ["npm", "run", "start"]

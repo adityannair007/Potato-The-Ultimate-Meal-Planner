@@ -1,0 +1,10 @@
+# Required Supabase values
+supabase_url              = ""
+supabase_anon_key         = ""
+supabase_service_role_key = ""
+gemini_api_key            = ""
+
+# Optional overrides
+# app_image       = "potato-app:local"
+# next_public_url = "http://localhost:3000"
+# site_url        = "http://localhost:3000"
